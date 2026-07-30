@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0b1020">
+<title>Giraffe World</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🦒</text></svg>">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<!-- ============ loading ============ -->
+<div id="loading" class="screen">
+  <div class="loading-inner">
+    <div class="spark"></div>
+    <p id="loading-text">Waking up the world…</p>
+  </div>
+</div>
+
+<!-- ============ gate ============ -->
+<div id="gate" class="screen hidden">
+  <div class="panel">
+    <p class="gate-welcome" id="gate-welcome"></p>
+    <p class="gate-question" id="gate-question"></p>
+    <form id="gate-form" autocomplete="off">
+      <input id="gate-input" type="text" autocomplete="off" autocapitalize="none"
+             spellcheck="false" aria-label="Answer" placeholder="…">
+      <button type="submit" class="btn">Enter</button>
+    </form>
+    <p class="gate-hint" id="gate-hint"></p>
+  </div>
+</div>
+
+<!-- ============ title ============ -->
+<div id="title" class="screen hidden">
+  <div class="panel">
+    <h1 id="title-h" class="title-h"></h1>
+    <p id="title-body" class="title-body"></p>
+    <button id="title-go" class="btn btn-big"></button>
+    <p class="title-controls">
+      <span><b>WASD</b> / arrows to move</span>
+      <span><b>Space</b> to jump — twice to double jump</span>
+      <span><b>Drag</b> or <b>Q</b>/<b>E</b> to turn the camera</span>
+      <span><b>J</b> for your journal</span>
+    </p>
+  </div>
+</div>
+
+<!-- ============ hud ============ -->
+<div id="hud" class="hidden">
+  <button id="hud-journal" class="hud-btn" title="Journal (J)">
+    <span class="hud-count"><span id="found-count">0</span><span class="hud-slash">/</span><span id="found-total">16</span></span>
+    <span class="hud-label">memories</span>
+  </button>
+  <div class="hud-right">
+    <div id="spark-counter" class="hud-sparks"><span class="sparkdot"></span><span id="spark-count">0</span></div>
+    <button id="hud-sound" class="icon-btn" title="Sound">♪</button>
+  </div>
+  <div id="toast" class="toast"></div>
+</div>
+
+<!-- ============ touch controls ============ -->
+<div id="touch" class="hidden">
+  <div id="stick" class="stick"><div id="stick-nub" class="stick-nub"></div></div>
+  <button id="touch-jump" class="touch-jump">jump</button>
+</div>
+
+<!-- ============ note modal ============ -->
+<div id="note" class="screen hidden note-screen">
+  <div class="note-card">
+    <div class="note-photo-wrap">
+      <img id="note-photo" alt="" class="note-photo">
+    </div>
+    <div class="note-text">
+      <div class="note-index"><span id="note-num"></span></div>
+      <h2 id="note-title"></h2>
+      <p id="note-date" class="note-date"></p>
+      <div id="note-body" class="note-body"></div>
+      <div id="note-draft" class="note-draft hidden">⚠︎ placeholder — still needs writing</div>
+      <button id="note-close" class="btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ journal ============ -->
+<div id="journal" class="screen hidden">
+  <div class="journal-panel">
+    <div class="journal-head">
+      <h2>Journal</h2>
+      <button id="journal-close" class="icon-btn">✕</button>
+    </div>
+    <p id="journal-sub" class="journal-sub"></p>
+    <div id="journal-grid" class="journal-grid"></div>
+    <div class="journal-foot">
+      <button id="journal-reset" class="linkbtn">start over</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ finale ============ -->
+<div id="finale" class="screen hidden">
+  <div class="panel finale-panel">
+    <div class="finale-glow"></div>
+    <h1 id="finale-title"></h1>
+    <div id="finale-body"></div>
+    <div id="finale-draft" class="note-draft hidden">⚠︎ placeholder — still needs writing</div>
+    <button id="finale-close" class="btn btn-big">Keep exploring</button>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

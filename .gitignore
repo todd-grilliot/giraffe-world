@@ -1,0 +1,3 @@
+# full-size originals — the web-sized copies in photos/ are what ship
+photos_src/
+.DS_Store
