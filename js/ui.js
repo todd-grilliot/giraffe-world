@@ -212,6 +212,15 @@ export class UI {
 
   setSparks(n) { $('spark-count').textContent = n; }
 
+  /** Names the track for a few seconds whenever a new one starts. */
+  nowPlaying(title) {
+    const el = $('now-playing');
+    el.textContent = '♪  ' + title;
+    el.classList.add('show');
+    clearTimeout(this._npTimer);
+    this._npTimer = setTimeout(() => el.classList.remove('show'), 4800);
+  }
+
   toast(msg, ms = 2600) {
     const el = $('toast');
     el.textContent = msg;

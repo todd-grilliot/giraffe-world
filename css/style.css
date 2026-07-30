@@ -159,6 +159,18 @@ html,body{
 .hud-right .icon-btn{ background:#0b1020a6; border:1px solid #ffffff1f; }
 .hud-right .icon-btn.off{ opacity:.4; }
 
+.now-playing{
+  position:absolute; right:16px; top:calc(64px + env(safe-area-inset-top,0px));
+  background:#0b1020a6; border:1px solid #ffffff1f; border-radius:999px;
+  padding:7px 15px; color:#e6dfd0; font-size:12.5px; letter-spacing:.015em;
+  backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+  pointer-events:none; white-space:nowrap; max-width:62vw;
+  overflow:hidden; text-overflow:ellipsis;
+  opacity:0; transform:translateY(-6px);
+  transition:opacity .55s ease, transform .55s ease;
+}
+.now-playing.show{ opacity:1; transform:none; }
+
 .toast{
   position:absolute; left:50%; bottom:calc(96px + var(--safe-b));
   transform:translate(-50%, 14px);

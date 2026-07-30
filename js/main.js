@@ -9,6 +9,7 @@ import { Input } from './input.js';
 import { Memories, Sparks, Companion } from './memories.js';
 import { UI } from './ui.js';
 import { Sound } from './audio.js';
+import { Music } from './music.js';
 import * as Save from './save.js';
 
 const canvas = document.getElementById('scene');
@@ -21,10 +22,17 @@ boot().catch((err) => {
 
 async function boot() {
   // ------------------------------------------------------------ data
-  const res = await fetch('data/notes.json', { cache: 'no-cache' });
+  const [res, musicRes] = await Promise.all([
+    fetch('data/notes.json', { cache: 'no-cache' }),
+    fetch('data/music.json', { cache: 'no-cache' }).catch(() => null),
+  ]);
   if (!res.ok) throw new Error(`couldn't read notes.json (${res.status})`);
   const data = await res.json();
   if (!Array.isArray(data.notes) || !data.notes.length) throw new Error('notes.json has no notes');
+
+  // Music is a nice-to-have: if the manifest is missing the game still runs.
+  let musicData = null;
+  try { if (musicRes && musicRes.ok) musicData = await musicRes.json(); } catch {}
 
   // ------------------------------------------------------------ renderer
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -71,6 +79,7 @@ async function boot() {
   const sparks    = new Sparks(scene, world.sparkPoints);
   const companion = new Companion(scene);
   const sound     = new Sound();
+  const music     = musicData ? new Music(musicData, (t) => ui.nowPlaying(t.title)) : null;
 
   // ------------------------------------------------------------ state
   const state = Save.load();
@@ -95,6 +104,7 @@ async function boot() {
     getFound: () => found,
     onStart() {
       sound.init();
+      music?.start();          // this click is the gesture that unlocks audio
       running = true;
       input.enabled = true;
     },
@@ -111,13 +121,15 @@ async function boot() {
     onReset() { Save.clear(); location.reload(); },
     onSoundToggle() {
       sound.init();
-      sound.setEnabled(!sound.on);
-      return sound.on;
+      const on = !sound.on;
+      sound.setEnabled(on);
+      music?.setEnabled(on);
+      return on;
     },
   });
 
   // handy from the browser console when tweaking the world
-  window.__sw = { player, chase, world, memories, sparks, input, ui, sound, renderer, scene, camera };
+  window.__sw = { player, chase, world, memories, sparks, input, ui, sound, music, renderer, scene, camera };
 
   ui.setCount(found.size);
   ui.setSparks(sparks.taken);
