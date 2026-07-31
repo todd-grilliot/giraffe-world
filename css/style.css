@@ -195,7 +195,7 @@ html,body{
   to  { transform:none; opacity:1 }
 }
 @keyframes rainbowRun{ to{ background-position:280% 0 } }
-.congrats.fading{ transition:opacity 1.6s ease; opacity:0; }
+.congrats.fading{ transition:opacity .65s ease; opacity:0; }
 
 .scores{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 .score-pop{

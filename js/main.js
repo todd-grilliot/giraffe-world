@@ -138,7 +138,7 @@ async function boot() {
         stars.visible = false;
         celebration.start();
         sound.finale();
-        music?.playThemeNow();
+        music?.playFirst();
       }
     },
     onFinaleClosed() { finaleJustClosed = true; },

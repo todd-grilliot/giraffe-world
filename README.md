@@ -65,8 +65,8 @@ The `finale` block shows once she's found all sixteen. Make it the one that matt
 
 ## The ending
 
-Find all sixteen and the last note gives way to a CONGRATULATIONS card. Press
-**Fly** and the platformer stops: the giraffe goes horizontal, leaves a rainbow
+Find all sixteen and the last note gives way to the ending card. Press **Fly**
+and the platformer stops: the giraffe goes horizontal, leaves a rainbow
 ribbon and a trail of sparks, and can be flown anywhere across a much larger
 map at speed. There's no collision any more — fly through a tree, a platform,
 the house, and it shatters and tumbles away. Birds circle the map and can be
@@ -90,23 +90,23 @@ rate, pool sizes, hit radius, map bounds) are the knobs.
 
 ## The music
 
-Your album, *Demos for Days*, re-encoded for the web (40MB → 17MB) and sitting
-in `music/`. The running order is **theme, random, theme, random…** — "Giraffe
-World" opens the game and comes back every other song, with a different track
-from the album in between. The random pick never repeats the one before it.
+Four tracks off your album, *Demos for Days*, re-encoded for the web and sitting
+in `music/`. They play straight through in this order and then start again:
 
-`data/music.json` controls all of it. Drop a track by deleting its line from
-`shuffle`; add one by putting the mp3 in `music/` and adding a `{ file, title }`
-entry; change what opens the game by moving a track into `theme`. `volume` is
-0–1.
+1. Giraffe World
+2. Gibberish
+3. Light your Fires
+4. My Dad Rocks
 
-Which song plays next is worked out from what just finished, not from a counter,
-so the alternation can't drift out of step no matter what happens mid-session.
+`data/music.json` is the running order — reorder those entries to change it, or
+add a track by putting the mp3 in `music/` and adding a `{ file, title }` line
+wherever you want it. `volume` is 0–1. Taking off at the ending jumps back to
+the top of the list.
 
-Music only loads as it's needed — just the 768K theme up front, the rest one at
-a time — so opening the game on a phone isn't a 17MB download. The ♪ button
-mutes music and sound effects together, and each track's name fades in briefly
-as it starts.
+Music loads a track at a time rather than all at once, so opening the game on a
+phone isn't a bulk download. If a file ever goes missing the playlist skips past
+it instead of stopping. The ♪ button mutes music and sound effects together, and
+each track's name fades in briefly as it starts.
 
 To re-encode a new track at the same settings:
 

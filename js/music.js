@@ -1,22 +1,20 @@
-// The soundtrack. Plays the theme, then a random track off the album, then the
-// theme again — so the theme comes round every other song.
+// The soundtrack. Plays the playlist straight through in order, then loops.
 //
 // One <audio> element does all the work. Browsers only allow playback to start
 // from a real user gesture, so `start()` is called from the Go button.
 
 export class Music {
   constructor(data, onTrack) {
-    this.theme    = data.theme;
-    this.shuffle  = (data.shuffle || []).slice();
-    this.volume   = typeof data.volume === 'number' ? data.volume : 0.42;
-    this.onTrack  = onTrack || (() => {});
+    this.tracks  = (data.playlist || []).slice();
+    this.volume  = typeof data.volume === 'number' ? data.volume : 0.42;
+    this.onTrack = onTrack || (() => {});
 
-    this.on       = true;
-    this.playing  = false;
-    this.current  = null;
-    this._lastPick = -1;        // so the random pick never repeats back to back
-    this._failed   = new Set(); // tracks that wouldn't load; don't keep retrying
-    this._fade     = null;
+    this.on      = true;
+    this.playing = false;
+    this.index   = -1;
+    this.current = null;
+    this._failed = new Set();   // tracks that wouldn't load; don't keep retrying
+    this._fade   = null;
 
     this.el = new Audio();
     this.el.preload = 'auto';
@@ -31,15 +29,15 @@ export class Music {
 
   /** Must be called from a user gesture. */
   start() {
-    if (this.playing) return;
+    if (this.playing || !this.tracks.length) return;
     this.playing = true;
-    this._play(this.theme);
+    this._play(0);
   }
 
-  /** Cut straight to the title track — for the ending. */
-  playThemeNow() {
-    if (!this.playing) return;
-    this._play(this.theme);
+  /** Back to the top of the playlist — for the ending. */
+  playFirst() {
+    if (!this.playing || !this.tracks.length) return;
+    this._play(0);
   }
 
   setEnabled(on) {
@@ -52,38 +50,23 @@ export class Music {
     }
   }
 
-  /**
-   * Alternate by looking at what just played rather than by flipping a flag.
-   * A flag has to be kept in step with reality by every caller; this can't drift,
-   * so the theme is always exactly every other track.
-   */
+  /** Next in the list, wrapping. Skips anything that failed to load. */
   _advance() {
-    const themeJustPlayed = !!this.current && this.current.file === this.theme.file;
-    const next = themeJustPlayed ? this._pick() : this.theme;
-    if (next) this._play(next);
+    if (!this.tracks.length) return;
+    for (let step = 1; step <= this.tracks.length; step++) {
+      const next = (this.index + step) % this.tracks.length;
+      if (!this._failed.has(this.tracks[next].file)) return this._play(next);
+    }
+    // everything is broken; stop rather than spin
+    this.playing = false;
   }
 
-  /** A random track that isn't the one we played last time. */
-  _pick() {
-    const usable = this.shuffle
-      .map((t, i) => ({ t, i }))
-      .filter(({ t, i }) => i !== this._lastPick && !this._failed.has(t.file));
-
-    // if that left nothing (tiny album, or everything failed), fall back
-    const pool = usable.length
-      ? usable
-      : this.shuffle.map((t, i) => ({ t, i })).filter(({ t }) => !this._failed.has(t.file));
-    if (!pool.length) return this.theme;
-
-    const choice = pool[Math.floor(Math.random() * pool.length)];
-    this._lastPick = choice.i;
-    return choice.t;
-  }
-
-  _play(track) {
+  _play(i) {
+    const track = this.tracks[i];
+    if (!track) return;
+    this.index = i;
     this.current = track;
     this.el.src = track.file;
-    this.el.currentTime = 0;
     this.el.volume = 0;
     if (this.on) {
       const p = this.el.play();

@@ -2,32 +2,19 @@
   "_readme": [
     "The soundtrack: Todd Grilliot, 'Demos for Days'.",
     "",
-    "`theme` plays first and then every other track, so the running order is",
-    "theme, random, theme, random... The random pick is drawn from `shuffle`",
-    "and never repeats the track that was picked last time round.",
+    "`playlist` plays straight through in this order and then starts again from",
+    "the top. To change the running order, reorder these entries. To add a track,",
+    "put the mp3 in music/ and add a { file, title } line wherever you want it.",
     "",
-    "To drop a track, delete its line from `shuffle`. To add one, put the mp3",
-    "in music/ and add a { file, title } entry. To change what plays first,",
-    "move a track into `theme`."
+    "The ending jumps back to the first track when the giraffe takes off."
   ],
 
   "volume": 0.42,
 
-  "theme": { "file": "music/giraffe-world.mp3", "title": "Giraffe World" },
-
-  "shuffle": [
-    { "file": "music/01-lost-boys.mp3",          "title": "Lost Boys" },
-    { "file": "music/02-better-part.mp3",        "title": "Better Part" },
-    { "file": "music/04-soft-light.mp3",         "title": "Soft Light" },
-    { "file": "music/05-words-to-describe.mp3",  "title": "Words to Describe" },
-    { "file": "music/06-gibberish.mp3",          "title": "Gibberish" },
-    { "file": "music/07-pajamas.mp3",            "title": "Pajamas" },
-    { "file": "music/08-divided-if-i-did.mp3",   "title": "Divided if I Did" },
-    { "file": "music/09-stealing-my-soul.mp3",   "title": "Stealing my Soul" },
-    { "file": "music/10-light-your-fires.mp3",   "title": "Light your Fires" },
-    { "file": "music/11-heres-hoping.mp3",       "title": "Here's Hoping" },
-    { "file": "music/12-softer.mp3",             "title": "Softer" },
-    { "file": "music/13-the-hungry-and-you.mp3", "title": "The Hungry and You" },
-    { "file": "music/14-my-dad-rocks.mp3",       "title": "My Dad Rocks" }
+  "playlist": [
+    { "file": "music/giraffe-world.mp3",       "title": "Giraffe World" },
+    { "file": "music/06-gibberish.mp3",        "title": "Gibberish" },
+    { "file": "music/10-light-your-fires.mp3", "title": "Light your Fires" },
+    { "file": "music/14-my-dad-rocks.mp3",     "title": "My Dad Rocks" }
   ]
 }

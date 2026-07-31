@@ -226,12 +226,30 @@ export class UI {
 
   // ------------------------------------------------------------- the ending
 
+  /** Two cards: the shout, then the thing it's actually there to say. */
   showCongrats() {
     const el = $('congrats');
-    el.classList.remove('hidden', 'fading');
-    // let it sit a while, then fade so it stops covering the flying
-    clearTimeout(this._congratsTimer);
-    this._congratsTimer = setTimeout(() => el.classList.add('fading'), 5200);
+    const span = el.querySelector('span');
+    const FADE = 650;
+
+    const card = (text, holdMs, then) => {
+      span.textContent = text;
+      el.classList.remove('hidden', 'fading');
+      // replay the pop-in even though the node is being reused
+      span.style.animation = 'none';
+      void span.offsetWidth;
+      span.style.animation = '';
+      this._congratsA = setTimeout(() => {
+        el.classList.add('fading');
+        this._congratsB = setTimeout(then, FADE);
+      }, holdMs);
+    };
+
+    clearTimeout(this._congratsA);
+    clearTimeout(this._congratsB);
+    card('CONGRAGULATION!', 2000, () => {
+      card('You’re the best sister!', 4000, () => el.classList.add('hidden'));
+    });
   }
 
   /**
