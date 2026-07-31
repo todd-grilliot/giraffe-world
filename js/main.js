@@ -25,13 +25,13 @@ boot().catch((err) => {
 async function boot() {
   // ------------------------------------------------------------ data
   const [res, musicRes, npcRes] = await Promise.all([
-    fetch('data/notes.json', { cache: 'no-cache' }),
+    fetch('data/game.json', { cache: 'no-cache' }),
     fetch('data/music.json', { cache: 'no-cache' }).catch(() => null),
     fetch('data/npcs.json',  { cache: 'no-cache' }).catch(() => null),
   ]);
-  if (!res.ok) throw new Error(`couldn't read notes.json (${res.status})`);
+  if (!res.ok) throw new Error(`couldn't read game.json (${res.status})`);
   const data = await res.json();
-  if (!Array.isArray(data.notes) || !data.notes.length) throw new Error('notes.json has no notes');
+  data.count = Math.max(1, data.count | 0) || 16;
 
   // Music is a nice-to-have: if the manifest is missing the game still runs.
   let musicData = null;
@@ -81,7 +81,7 @@ async function boot() {
   const chase     = new ChaseCamera(camera, world);
   chase.yaw = Math.PI;   // the world unrolls toward +Z, so start looking that way
   const input     = new Input(canvas);
-  const memories  = new Memories(scene, world.memoryAnchors, data.notes.length);
+  const memories  = new Memories(scene, world.memoryAnchors, data.count);
   const sparks    = new Sparks(scene, world.sparkPoints);
   const companion = new Companion(scene);
   const sound     = new Sound();
@@ -169,6 +169,7 @@ async function boot() {
                   celebration, npcs, renderer, scene, camera };
 
   ui.setCount(found.size);
+  player.aura.setPower(found.size / data.count);
   ui.setSparks(sparks.taken);
   ui.hideLoading();
   // Bind the on-screen stick regardless — it costs nothing on a machine that
@@ -244,7 +245,8 @@ async function boot() {
     if (celebration.active) {
       if (!ui.isBlocking()) {
         celebration.update(dt, input);
-        npcs.update(dt, t, celebration.pos, true);
+        npcs.update(dt, t, celebration.pos, true, null);
+        player.aura.update(dt, t, celebration.pos);
       }
       input.takeLook(dt);
       renderer.render(scene, camera);
@@ -261,7 +263,7 @@ async function boot() {
       handleEvents();
       checkPickups();
       checkCheckpoints();
-      npcs.update(dt, t, player.pos, false);
+      npcs.update(dt, t, player.pos, false, talkingTo);
       handleTalking();
     } else {
       // keep the camera alive so the world still breathes behind a modal
@@ -270,6 +272,7 @@ async function boot() {
       input.sample(basis);
     }
 
+    player.aura.update(dt, t, player.pos);
     memories.update(dt, t, player.pos);
     sparks.update(dt, t);
     companion.update(dt, t, player, memories.next());
@@ -300,9 +303,14 @@ async function boot() {
       persist();
       ui.setCount(found.size);
       sound.memory();
-      ui.showNote(hit.index);
-      preloadNext();
-      if (found.size === data.notes.length && !state.finaleSeen) pendingFinale = true;
+      player.aura.setPower(found.size / data.count);
+      if (found.size === data.count && !state.finaleSeen) {
+        pendingFinale = true;
+        state.finaleSeen = true;
+        persist();
+        sound.finale();
+        setTimeout(() => { pendingFinale = false; ui.showFinale(); }, 900);
+      }
     }
 
     const si = sparks.checkPickup(player.pos);
@@ -319,9 +327,15 @@ async function boot() {
    */
   const speechAt = new THREE.Vector3();
   function handleTalking() {
-    const near = npcs.nearest(player.pos);
     const pressed = input.takeTalk() || talkTapped;
     talkTapped = false;
+
+    // Once a conversation has started, hold onto it until she's properly walked
+    // away — a wider radius than the one that starts it, so drifting a step
+    // doesn't cut somebody off mid-sentence.
+    const holding = talkingTo && !talkingTo.dead
+      && talkingTo.pos.distanceTo(player.pos) < 9.0 ? talkingTo : null;
+    const near = holding || npcs.nearest(player.pos, false);
 
     if (!near) {
       if (talkingTo) { ui.hideSpeech(); talkingTo = null; }
@@ -332,9 +346,13 @@ async function boot() {
     if (talkingTo !== near) ui.showTalkPrompt(input.isTouch);
 
     if (pressed) {
-      const line = npcs.say(near);
+      // first press shows what they're on; after that it moves them along
+      const line = talkingTo === near
+        ? npcs.advance(near, found.size)
+        : npcs.current(near, found.size);
       if (line) {
         talkingTo = near;
+        ui.hideTalkPrompt();
         ui.showSpeech(near.name, line);
         sound.talk();
       }
@@ -343,9 +361,6 @@ async function boot() {
     if (talkingTo === near) {
       speechAt.set(near.pos.x, near.pos.y + 2.35, near.pos.z);
       ui.placeSpeech(speechAt, camera);
-    } else if (talkingTo) {
-      ui.hideSpeech();
-      talkingTo = null;
     }
   }
 
@@ -359,15 +374,6 @@ async function boot() {
       }
     }
   }
-
-  /** Warm the browser cache for the photo she's most likely to open next. */
-  function preloadNext() {
-    const nxt = memories.next();
-    if (!nxt) return;
-    const n = data.notes[nxt.index];
-    if (n?.photo) { const img = new Image(); img.src = n.photo; }
-  }
-  preloadNext();
 
   function updateSky(dt) {
     paletteAt(player.pos.z, pal);

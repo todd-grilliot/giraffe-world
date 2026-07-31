@@ -48,17 +48,17 @@
       <span><b>WASD</b> / arrows to move</span>
       <span><b>Space</b> to jump — twice to double jump</span>
       <span><b>Drag</b> or <b>Q</b>/<b>E</b> to turn the camera</span>
-      <span><b>J</b> for your journal</span>
+      <span><b>E</b> to talk to the locals</span>
     </p>
   </div>
 </div>
 
 <!-- ============ hud ============ -->
 <div id="hud" class="hidden">
-  <button id="hud-journal" class="hud-btn" title="Journal (J)">
+  <div id="hud-journal" class="hud-btn">
     <span class="hud-count"><span id="found-count">0</span><span class="hud-slash">/</span><span id="found-total">16</span></span>
-    <span class="hud-label">memories</span>
-  </button>
+    <span class="hud-label">collected</span>
+  </div>
   <div class="hud-right">
     <div id="spark-counter" class="hud-sparks"><span class="sparkdot"></span><span id="spark-count">0</span></div>
     <button id="hud-sound" class="icon-btn" title="Sound">♪</button>
@@ -82,38 +82,6 @@
 <div id="touch" class="hidden">
   <div id="stick" class="stick"><div id="stick-nub" class="stick-nub"></div></div>
   <button id="touch-jump" class="touch-jump">jump</button>
-</div>
-
-<!-- ============ note modal ============ -->
-<div id="note" class="screen hidden note-screen">
-  <div class="note-card">
-    <div class="note-photo-wrap">
-      <img id="note-photo" alt="" class="note-photo">
-    </div>
-    <div class="note-text">
-      <div class="note-index"><span id="note-num"></span></div>
-      <h2 id="note-title"></h2>
-      <p id="note-date" class="note-date"></p>
-      <div id="note-body" class="note-body"></div>
-      <div id="note-draft" class="note-draft hidden">⚠︎ placeholder — still needs writing</div>
-      <button id="note-close" class="btn">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ journal ============ -->
-<div id="journal" class="screen hidden">
-  <div class="journal-panel">
-    <div class="journal-head">
-      <h2>Journal</h2>
-      <button id="journal-close" class="icon-btn">✕</button>
-    </div>
-    <p id="journal-sub" class="journal-sub"></p>
-    <div id="journal-grid" class="journal-grid"></div>
-    <div class="journal-foot">
-      <button id="journal-reset" class="linkbtn">start over</button>
-    </div>
-  </div>
 </div>
 
 <!-- ============ finale ============ -->

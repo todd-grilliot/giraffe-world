@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { CFG, SPAWN } from './config.js';
 import { buildGiraffe } from './giraffe.js';
+import { Aura } from './aura.js';
 
 export class Player {
   constructor(scene, world) {
@@ -38,6 +39,9 @@ export class Player {
     );
     this.blob.rotation.x = -Math.PI / 2;
     scene.add(this.blob);
+
+    // the glow, which grows with every one she takes
+    this.aura = new Aura(scene);
 
     this._box = { min: new THREE.Vector3(), max: new THREE.Vector3() };
     this.events = { jumped: false, landed: false, bounced: false, respawned: false, fluttered: false };

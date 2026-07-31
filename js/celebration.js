@@ -134,9 +134,10 @@ export class Celebration {
       g.setAttribute('position', new THREE.BufferAttribute(this.sparkPos, 3));
       g.setAttribute('color', new THREE.BufferAttribute(this.sparkCol, 3));
       this.sparkGeo = g;
+      // textured, so they read as sparks rather than hard white squares
       this.sparks = new THREE.Points(g, new THREE.PointsMaterial({
-        size: 0.55, vertexColors: true, transparent: true, opacity: 0.95,
-        depthWrite: false, blending: THREE.AdditiveBlending,
+        size: 0.42, map: sparkTexture(), vertexColors: true, transparent: true,
+        opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending,
       }));
       this.sparks.frustumCulled = false;
       this.sparks.visible = false;
@@ -558,6 +559,22 @@ export class Celebration {
     this.camera.lookAt(this._camLook);
     this.camera.rotateZ(this.roll * 0.22);
   }
+}
+
+let _sparkTex = null;
+function sparkTexture() {
+  if (_sparkTex) return _sparkTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0,   'rgba(255,255,255,1)');
+  grad.addColorStop(0.3, 'rgba(255,255,255,0.55)');
+  grad.addColorStop(1,   'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  _sparkTex = new THREE.CanvasTexture(c);
+  return _sparkTex;
 }
 
 const _hitAt = new THREE.Vector3();

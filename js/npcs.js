@@ -1,12 +1,14 @@
-// The other giraffes. They wander their patch with their arms up, they have
-// something to say if you walk over, and during the fly-around they scatter.
+// The other giraffes. They wander a patch that's been checked for walls and
+// ledges, they stop and turn to face you while they're talking, and what they
+// say depends on how many of the glowing things you've taken off them.
 
 import * as THREE from 'three';
 import { buildGiraffe } from './giraffe.js';
 
-const TALK_RANGE = 4.2;
-const VIEW_RANGE = 44;     // beyond this they are not drawn at all — each giraffe is ~33 meshes
-const FLEE_RANGE = 26;     // how far off they notice her coming in the ending
+const TALK_RANGE = 4.6;    // close enough for the prompt to appear
+const KEEP_RANGE = 9.0;    // conversation continues until you're this far off
+const VIEW_RANGE = 44;     // beyond this they aren't drawn — each is ~33 meshes
+const FLEE_RANGE = 26;
 const WALK       = 2.6;
 const FLEE_SPEED = 13;
 
@@ -14,7 +16,6 @@ export class NPCs {
   constructor(scene, world, data) {
     this.world = world;
     this.list = [];
-    this.talkingTo = null;
 
     for (const spec of (data?.people || [])) {
       const rig = buildGiraffe({ outfit: spec.outfit || [] });
@@ -22,10 +23,11 @@ export class NPCs {
       scene.add(rig.root);
 
       const home = new THREE.Vector3(spec.at[0], spec.at[1], spec.at[2]);
-      this.list.push({
+      const n = {
         name: spec.name,
-        lines: spec.lines || [],
+        stages: spec.stages || [],
         line: 0,
+        stageKey: null,
         rig,
         home,
         pos: home.clone(),
@@ -34,16 +36,67 @@ export class NPCs {
         facing: 0,
         bob: Math.random() * 6,
         fleeing: false,
-        vel: new THREE.Vector3(),
+        talking: false,
         dead: false,
         ground: home.y,
-      });
+      };
+      n.radius = this._safeRadius(n);
+      this.list.push(n);
     }
   }
 
+  /**
+   * Shrink a walking circle until it stays on solid ground and clear of walls.
+   * Left alone, a giraffe will happily stroll into a castle or off a cliff and
+   * spend the rest of the game hovering inside a wall.
+   */
+  _safeRadius(n) {
+    const SAMPLES = 16;
+    for (let r = n.radius; r >= 0; r -= 0.5) {
+      let ok = true;
+      for (let i = 0; i < SAMPLES && ok; i++) {
+        const a = (i / SAMPLES) * Math.PI * 2;
+        const x = n.home.x + Math.cos(a) * r;
+        const z = n.home.z + Math.sin(a) * r;
+        const g = this._groundAt(x, z, n.home.y);
+        // no floor, or a step too big to be walking up
+        if (g === null || Math.abs(g - n.home.y) > 1.2) { ok = false; break; }
+        if (this._blocked(x, g, z)) ok = false;
+      }
+      if (ok) return Math.max(0, r);
+    }
+    return 0;                    // nowhere safe to walk: stand still instead
+  }
+
+  /** Is something solid occupying the space a giraffe's body would be in? */
+  _blocked(x, y, z) {
+    const R = 0.75, HEAD = 2.2;
+    for (const s of this.world.solids) {
+      if (x + R < s.min.x || x - R > s.max.x) continue;
+      if (z + R < s.min.z || z - R > s.max.z) continue;
+      if (s.max.y <= y + 0.3) continue;          // it's the floor, or below it
+      if (s.min.y >= y + HEAD) continue;         // it's overhead
+      return true;
+    }
+    return false;
+  }
+
+  /** Highest surface under a point, or null if there's nothing to stand on. */
+  _groundAt(x, z, near) {
+    let best = null;
+    for (const s of this.world.solids) {
+      if (x < s.min.x - 0.3 || x > s.max.x + 0.3) continue;
+      if (z < s.min.z - 0.3 || z > s.max.z + 0.3) continue;
+      if (s.max.y > near + 2.5) continue;
+      if (best === null || s.max.y > best) best = s.max.y;
+    }
+    return best;
+  }
+
   /** Nearest one close enough to chat to, or null. */
-  nearest(pos) {
-    let best = null, bd = TALK_RANGE * TALK_RANGE;
+  nearest(pos, keep) {
+    const range = keep ? KEEP_RANGE : TALK_RANGE;
+    let best = null, bd = range * range;
     for (const n of this.list) {
       if (n.dead) continue;
       const d = n.pos.distanceToSquared(pos);
@@ -52,33 +105,57 @@ export class NPCs {
     return best;
   }
 
-  /** Advance the given giraffe to their next line and return it. */
-  say(n) {
-    if (!n.lines.length) return '';
-    const line = n.lines[n.line % n.lines.length];
-    n.line++;
-    return line;
+  /** Which set of lines applies at this many collected. */
+  _stageFor(n, collected) {
+    let pick = null;
+    for (const st of n.stages) {
+      if (collected >= (st.from ?? 0) && (!pick || (st.from ?? 0) >= (pick.from ?? 0))) pick = st;
+    }
+    return pick;
   }
 
-  update(dt, t, playerPos, flying) {
+  /** The line they're currently on. Doesn't advance. */
+  current(n, collected) {
+    const st = this._stageFor(n, collected);
+    if (!st || !st.say?.length) return '';
+    // moving into a new stage restarts them on its first line
+    const key = String(st.from ?? 0);
+    if (n.stageKey !== key) { n.stageKey = key; n.line = 0; }
+    return st.say[n.line % st.say.length];
+  }
+
+  /** Move to their next line. */
+  advance(n, collected) {
+    const st = this._stageFor(n, collected);
+    if (!st || !st.say?.length) return '';
+    const key = String(st.from ?? 0);
+    if (n.stageKey !== key) { n.stageKey = key; n.line = 0; }
+    else n.line++;
+    return st.say[n.line % st.say.length];
+  }
+
+  update(dt, t, playerPos, flying, talkingTo) {
     for (const n of this.list) {
       if (n.dead) { n.rig.root.visible = false; continue; }
 
       const far = n.pos.distanceToSquared(playerPos) > VIEW_RANGE * VIEW_RANGE;
       n.rig.root.visible = !far;
-      if (far) continue;                      // no point animating what isn't drawn
+      if (far) { n.talking = false; continue; }
 
+      n.talking = !flying && talkingTo === n;
       let moving = 0;
 
-      if (flying) {
-        // she's coming in fast — bolt away from her, otherwise keep circling
+      if (n.talking) {
+        // stand still and look at her — otherwise they wander off mid-sentence
+        const dx = playerPos.x - n.pos.x, dz = playerPos.z - n.pos.z;
+        if (dx * dx + dz * dz > 0.04) n.facing = turnTo(n.facing, Math.atan2(dx, dz), dt * 6);
+      } else if (flying) {
         const d = n.pos.distanceTo(playerPos);
         if (d < FLEE_RANGE) {
           n.fleeing = true;
           const away = _v.copy(n.pos).sub(playerPos).setY(0);
           if (away.lengthSq() < 0.001) away.set(1, 0, 0);
           away.normalize();
-          // veer sideways too, so they scatter instead of running in a line
           away.x += Math.sin(t * 3 + n.phase) * 0.5;
           away.z += Math.cos(t * 3 + n.phase) * 0.5;
           away.normalize();
@@ -87,22 +164,23 @@ export class NPCs {
           moving = 1;
         } else {
           n.fleeing = false;
-          moving = this._loop(n, dt, t, 1.35);
+          moving = this._loop(n, dt, 1.35);
         }
       } else {
-        moving = this._loop(n, dt, t, 1);
+        n.fleeing = false;
+        moving = this._loop(n, dt, 1);
       }
 
-      // keep their feet on whatever is under them
-      const g = this._groundAt(n.pos, n.ground);
-      n.ground += (g - n.ground) * Math.min(1, dt * 8);
+      const g = this._groundAt(n.pos.x, n.pos.z, n.ground);
+      if (g !== null) n.ground += (g - n.ground) * Math.min(1, dt * 8);
       n.pos.y = n.ground;
 
-      this._animate(n, dt, t, moving);
+      this._animate(n, t, moving);
     }
   }
 
-  _loop(n, dt, t, speedScale) {
+  _loop(n, dt, speedScale) {
+    if (n.radius <= 0.05) return 0;            // nowhere safe to go; idle in place
     n.phase += dt * (WALK * speedScale) / Math.max(1, n.radius);
     const x = n.home.x + Math.cos(n.phase) * n.radius;
     const z = n.home.z + Math.sin(n.phase) * n.radius;
@@ -112,20 +190,8 @@ export class NPCs {
     return 1;
   }
 
-  /** Highest surface under a point, so they don't sink into hillsides. */
-  _groundAt(p, fallback) {
-    let best = -Infinity;
-    for (const s of this.world.solids) {
-      if (p.x < s.min.x - 0.3 || p.x > s.max.x + 0.3) continue;
-      if (p.z < s.min.z - 0.3 || p.z > s.max.z + 0.3) continue;
-      if (s.max.y > fallback + 2.5) continue;
-      if (s.max.y > best) best = s.max.y;
-    }
-    return best > -Infinity ? best : fallback;
-  }
-
-  /** Arms permanently up, because they're delighted. */
-  _animate(n, dt, t, moving) {
+  /** Arms permanently up, because they're delighted. Or terrified. */
+  _animate(n, t, moving) {
     const r = n.rig;
     r.root.position.copy(n.pos);
     r.root.rotation.y = n.facing;
@@ -135,7 +201,6 @@ export class NPCs {
     r.legL.rotation.x =  sw * 0.75;
     r.legR.rotation.x = -sw * 0.75;
 
-    // both arms straight up, waving a little
     const wave = Math.sin(t * 4 + n.bob) * 0.22;
     r.armL.rotation.set(0, 0,  2.5 + wave);
     r.armR.rotation.set(0, 0, -2.5 - wave);
@@ -149,6 +214,12 @@ export class NPCs {
     r.earL.rotation.z =  0.42 + wave * 0.4;
     r.earR.rotation.z = -0.42 - wave * 0.4;
   }
+}
+
+function turnTo(from, to, step) {
+  let d = ((to - from + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+  if (Math.abs(d) <= step) return to;
+  return from + Math.sign(d) * step;
 }
 
 const _v = new THREE.Vector3();

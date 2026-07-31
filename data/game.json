@@ -1,0 +1,32 @@
+{
+  "_readme": [
+    "The text Sarah sees, and how many glowing things are hidden in the world.",
+    "",
+    "`count` is how many there are. Change it and the world places that many —",
+    "js/world.js has anchors for up to sixteen, and the extras stack on the last",
+    "anchor, so sixteen is the sensible maximum.",
+    "",
+    "What the giraffes say lives in data/npcs.json."
+  ],
+
+  "count": 16,
+
+  "gate": {
+    "question": "PLACEHOLDER - ask her something only she would know",
+    "answers": ["placeholder"],
+    "hint": "PLACEHOLDER - a gentle nudge if she gets it wrong twice",
+    "welcome": "Hi Sarah."
+  },
+
+  "intro": {
+    "title": "Giraffe World",
+    "body": "There are sixteen glowing things hidden out here.\n\nThe locals would rather you didn't. Follow the little light — it always knows where the next one is.",
+    "button": "Go"
+  },
+
+  "finale": {
+    "title": "PLACEHOLDER - what happens when she has all sixteen",
+    "body": "PLACEHOLDER - this shows once she's found every one. The giraffes did warn her.",
+    "draft": true
+  }
+}

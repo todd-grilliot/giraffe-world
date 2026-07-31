@@ -8,6 +8,9 @@ const _proj = new THREE.Vector3();   // scratch, so projecting doesn't allocate
 
 const norm = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '');
 const clamp01 = (v) => Math.max(0.04, Math.min(0.96, v));
+// the bubble is wide and sits above its anchor, so it needs more margin
+const clampEdge     = (v) => Math.max(0.22, Math.min(0.78, v));
+const clampSpeechY  = (v) => Math.max(0.20, Math.min(0.86, v));
 
 export class UI {
   constructor(data, hooks) {
@@ -18,7 +21,7 @@ export class UI {
     this._gateTries = 0;
     this._toastTimer = null;
 
-    $('found-total').textContent = data.notes.length;
+    $('found-total').textContent = data.count;
 
     // --- gate ---
     $('gate-welcome').textContent  = data.gate.welcome || '';
@@ -29,24 +32,12 @@ export class UI {
     });
 
     // --- title ---
-    $('title-h').textContent    = data.intro.title || "Giraffe World";
+    $('title-h').textContent    = data.intro.title || 'Giraffe World';
     $('title-body').textContent = data.intro.body || '';
     $('title-go').textContent   = data.intro.button || 'Go';
     $('title-go').addEventListener('click', () => {
       this.hide('title');
       this.hooks.onStart?.();
-    });
-
-    // --- note modal ---
-    $('note-close').addEventListener('click', () => this.closeNote());
-
-    // --- journal ---
-    $('hud-journal').addEventListener('click', () => this.showJournal());
-    $('journal-close').addEventListener('click', () => this.hide('journal'));
-    $('journal-reset').addEventListener('click', () => {
-      if (confirm('Start over from the beginning? Everything you’ve found will be cleared.')) {
-        this.hooks.onReset?.();
-      }
     });
 
     // --- finale ---
@@ -63,13 +54,7 @@ export class UI {
 
     addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
-      if (k === 'escape') {
-        if (this.open === 'note')    this.closeNote();
-        else if (this.open)          this.hide(this.open);
-      } else if (k === 'j' && (!this.open || this.open === 'journal')) {
-        if (this.open === 'journal') this.hide('journal');
-        else if (this._started)      this.showJournal();
-      }
+      if (k === 'escape' && this.open) this.hide(this.open);
     });
   }
 
@@ -134,68 +119,6 @@ export class UI {
   showHUD(touch) {
     $('hud').classList.remove('hidden');
     if (touch) $('touch').classList.remove('hidden');
-  }
-
-  // ------------------------------------------------------------- note
-
-  showNote(i) {
-    const n = this.data.notes[i];
-    if (!n) return;
-    $('note-num').textContent   = `${i + 1} of ${this.data.notes.length}`;
-    $('note-title').textContent = n.title || '';
-    $('note-date').textContent  = n.date || '';
-    $('note-date').style.display = n.date ? '' : 'none';
-    $('note-body').textContent  = n.body || '';
-    $('note-draft').classList.toggle('hidden', !n.draft);
-
-    const img = $('note-photo');
-    img.src = n.photo;
-    img.alt = n.title || `Memory ${i + 1}`;
-
-    this.show('note');
-  }
-
-  closeNote() { this.hide('note'); }
-
-  // ------------------------------------------------------------- journal
-
-  showJournal() {
-    const found = this.hooks.getFound?.() || new Set();
-    const total = this.data.notes.length;
-    $('journal-sub').textContent = found.size === total
-      ? 'You found every one.'
-      : `${found.size} of ${total} found — the light always knows where the next one is.`;
-
-    const grid = $('journal-grid');
-    grid.innerHTML = '';
-    this.data.notes.forEach((n, i) => {
-      const cell = document.createElement('button');
-      cell.className = 'jslot' + (found.has(i) ? ' found' : '');
-      if (found.has(i)) {
-        const img = document.createElement('img');
-        img.src = n.thumb || n.photo;
-        img.alt = n.title || `Memory ${i + 1}`;
-        img.loading = 'lazy';
-        const label = document.createElement('span');
-        label.className = 'jnum';
-        label.textContent = n.title || `#${i + 1}`;
-        cell.append(img, label);
-        cell.addEventListener('click', () => {
-          $('journal').classList.add('hidden');
-          this.open = null;
-          this.showNote(i);
-        });
-      } else {
-        const label = document.createElement('span');
-        label.className = 'jnum';
-        label.textContent = i + 1;
-        cell.append(label);
-        cell.disabled = true;
-      }
-      grid.append(cell);
-    });
-
-    this.show('journal');
   }
 
   // ------------------------------------------------------------- finale
@@ -335,15 +258,22 @@ export class UI {
 
   hideSpeech() { $('speech').classList.add('hidden'); }
 
-  /** Keep the bubble pinned over whoever is speaking. */
+  /**
+   * Keep the bubble pinned over whoever is speaking — but never let it leave
+   * the screen. It used to vanish the moment they drifted past the edge of the
+   * view, which cut people off mid-sentence.
+   */
   placeSpeech(worldPos, camera) {
     const el = $('speech');
     if (el.classList.contains('hidden')) return;
     const v = _proj.copy(worldPos).project(camera);
-    if (v.z > 1) { el.style.opacity = '0'; return; }
+    const behind = v.z > 1;
+    // behind the camera the projection mirrors, so flip it back before clamping
+    const x = behind ? -v.x : v.x;
+    const y = behind ? -1   : v.y;
     el.style.opacity = '1';
-    el.style.left = `${(v.x * 0.5 + 0.5) * 100}%`;
-    el.style.top  = `${(-v.y * 0.5 + 0.5) * 100}%`;
+    el.style.left = `${clampEdge(x * 0.5 + 0.5) * 100}%`;
+    el.style.top  = `${clampSpeechY(-y * 0.5 + 0.5) * 100}%`;
   }
 
   toast(msg, ms = 2600) {

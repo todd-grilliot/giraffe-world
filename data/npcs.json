@@ -1,15 +1,21 @@
 {
   "_readme": [
-    "The other giraffes. Walk up to one and a prompt appears; press E (or tap the",
-    "TALK button) to hear them. Each press moves to their next line and then loops.",
+    "The other giraffes. Walk up to one and a prompt appears; press E (or tap TALK)",
+    "to hear them, and again for their next line.",
     "",
-    "Everything here is safe to rewrite — these are just placeholder personalities.",
+    "Each has `stages`: a set of things to say depending on how many of the glowing",
+    "things she's picked up. The stage with the highest `from` that she's reached",
+    "is the one they use, so they get steadily more alarmed as she collects more.",
+    "",
     "`at` is where they stand: [x, y, z]. `outfit` is a list from OUTFITS in",
     "js/giraffe.js: topHat, partyHat, beanie, sunHat, flowerCrown, glasses, shades,",
     "scarf, bowTie, sweater, cape, backpack. `loop` is how wide a circle they",
-    "wander in.",
+    "wander in — it gets trimmed automatically if the circle would walk them into",
+    "a wall or off a ledge.",
     "",
-    "During the fly-around at the end they scatter instead of talking."
+    "Nobody agrees on what the glowing things are called. That's on purpose.",
+    "",
+    "Rewrite any of this. It's all placeholder in the sense that it's mine, not yours."
   ],
 
   "prompt": "Press E to talk",
@@ -21,11 +27,28 @@
       "at": [7, 0, 14],
       "outfit": ["sunHat", "scarf"],
       "loop": 5,
-      "lines": [
-        "Oh! You must be Sarah. We’ve been hoping you’d come.",
-        "Todd built all of this, you know. Every hill of it.",
-        "He kept moving that little house around until it looked right. Took him ages.",
-        "Go on — follow the light. It knows where it’s going."
+      "stages": [
+        { "from": 0, "say": [
+          "Oh! You must be Sarah. We’ve all been hoping you’d come.",
+          "Todd made this whole world for you. Built it with Claude, apparently. I don’t know what that is.",
+          "Have a wander. There are some glowy ball things out there if you like that sort of thing.",
+          "Perfectly safe, I’m sure. Probably. Nobody’s ever got very many."
+        ]},
+        { "from": 4, "say": [
+          "You’ve been picking up the glowy ball things, haven’t you.",
+          "No no, it’s fine! It’s fine. You just look a bit… lit.",
+          "Marlow says there’s an old story about them. Marlow says a lot of things."
+        ]},
+        { "from": 9, "say": [
+          "Sarah. Sweetheart. You are humming.",
+          "I can hear you from the house now. That is new.",
+          "Maybe just… stop at that many? For me?"
+        ]},
+        { "from": 14, "say": [
+          "I can’t look directly at you any more.",
+          "I told everyone you were lovely. I stand by that. I do.",
+          "Please. Not the last one."
+        ]}
       ]
     },
     {
@@ -33,11 +56,28 @@
       "at": [-17, 0, 38],
       "outfit": ["beanie", "backpack"],
       "loop": 7,
-      "lines": [
-        "Morning! Lovely day for it. Every day’s a lovely day here, mind.",
-        "Don’t tell Juniper I said so, but she’s been practising that greeting all week.",
-        "There are sixteen lanterns out there. Sixteen! He counted them out on his hooves.",
-        "If you fall, you just turn up again somewhere safe. Nothing here can really hurt you."
+      "stages": [
+        { "from": 0, "say": [
+          "Morning! Lovely day. Every day’s lovely here, mind.",
+          "You’ll see the shinies about. Little floating ones. Very pretty.",
+          "There’s a prophecy about them, supposedly. Sixteen shinies, one giraffe, everything goes a bit wrong.",
+          "I wouldn’t worry. Prophecies are mostly weather, in my experience."
+        ]},
+        { "from": 4, "say": [
+          "So — hypothetically — how many of the shinies have you got?",
+          "Mm. Mm-hm. And how do you feel? Powerful? Any urge to rule anything?",
+          "No? Good. Good. Great. Fine."
+        ]},
+        { "from": 9, "say": [
+          "Right, I’ve reread the prophecy. It’s worse than I remembered.",
+          "‘And one shall gather the sixteen, and Giraffe World shall kneel.’ That’s the actual line.",
+          "It doesn’t say who. It just says one. It could be anyone. It could be you."
+        ]},
+        { "from": 14, "say": [
+          "I’m packing. I don’t know where I’m going. I’m packing.",
+          "Fifteen. FIFTEEN. There is exactly one left, Sarah.",
+          "You’re a nice person! Nice people can still end a world! It’s been documented!"
+        ]}
       ]
     },
     {
@@ -45,11 +85,27 @@
       "at": [-7, 1.6, 88],
       "outfit": ["partyHat"],
       "loop": 4,
-      "lines": [
-        "I’ve had this hat on for three days in case you turned up. Worth it.",
-        "Bertrand said you wouldn’t come. Bertrand says a lot of things.",
-        "Is it true you two used to fight over the front seat? Marlow heard that somewhere.",
-        "Take your time! Nobody here is in a hurry. We live in a meadow."
+      "stages": [
+        { "from": 0, "say": [
+          "I’ve had this hat on for three days in case you turned up. Worth it.",
+          "Orbs? Are they orbs? What are they. Nobody will tell me what they’re called.",
+          "Bertrand calls them something enormous and I refuse to say it out loud."
+        ]},
+        { "from": 4, "say": [
+          "You’re glowing! That’s so exciting! Is that a thing you can do?",
+          "Wait. Is that from the orbs. Did you take the orbs.",
+          "You didn’t take the orbs, did you?? Sarah??"
+        ]},
+        { "from": 9, "say": [
+          "I’ve taken the hat off. It felt inappropriate.",
+          "You’re at nine. Nine of them. I counted from here. I could count from here.",
+          "Clementine’s crying in the woods. Just so you know that."
+        ]},
+        { "from": 14, "say": [
+          "I don’t want to be ruled. I’m not built for it. I’m a party hat giraffe.",
+          "Would you be a kind ruler? Be honest.",
+          "…Okay. Okay, that’s something."
+        ]}
       ]
     },
     {
@@ -57,11 +113,27 @@
       "at": [-15, 6.4, 138],
       "outfit": ["flowerCrown", "sweater"],
       "loop": 6,
-      "lines": [
-        "Careful in the trees, it gets a bit dim. Beautiful though.",
-        "He wrote all those notes himself. Sat there for hours getting them right.",
-        "I do hope she likes it, he kept saying. I do hope she likes it.",
-        "You do, don’t you? Like it? I’ll tell him you smiled."
+      "stages": [
+        { "from": 0, "say": [
+          "Careful in the trees, it gets dim. Beautiful though.",
+          "We call them the Lanterns here. Capital L. It feels respectful.",
+          "The old ones said sixteen was a number you shouldn’t finish. I never asked why."
+        ]},
+        { "from": 5, "say": [
+          "You’re warmer than you were. I felt you coming before I saw you.",
+          "The Lanterns aren’t lost, you know. Nobody dropped them. They were put there.",
+          "That’s the part that worries me. Somebody put them there for somebody."
+        ]},
+        { "from": 10, "say": [
+          "The moss is leaning towards you. Look. It’s leaning.",
+          "I’ve lived under this tree my whole life and it has never once leaned.",
+          "You’re not doing it on purpose, are you. That’s somehow worse."
+        ]},
+        { "from": 14, "say": [
+          "I’m not going to beg. Marlow’s begging. Somebody should keep their dignity.",
+          "…Please don’t take the last one.",
+          "There. I begged. It was very quick."
+        ]}
       ]
     },
     {
@@ -69,11 +141,27 @@
       "at": [14, 25.4, 189],
       "outfit": ["topHat", "bowTie"],
       "loop": 5,
-      "lines": [
-        "Ah. The sister. Delighted, genuinely delighted.",
-        "I maintain the high branches. Somebody has to, and it isn’t going to be Pip.",
-        "I never said you wouldn’t come. I said it was a long way. Different thing entirely.",
-        "The view from up here is the best in the world. He made it that way on purpose."
+      "stages": [
+        { "from": 0, "say": [
+          "Ah. The sister. Delighted, genuinely.",
+          "They are called the Spheres of Consequence. I have said so for years. Nobody uses it.",
+          "Pip calls them ‘orbs’. Pip also eats bark."
+        ]},
+        { "from": 6, "say": [
+          "You have several of the Spheres. I can see them in you. It’s rather vulgar.",
+          "The prophecy is quite specific and I have it committed to memory.",
+          "‘Sixteen, and the branches bow.’ I maintain these branches. I would rather they didn’t."
+        ]},
+        { "from": 11, "say": [
+          "I am attempting to remain composed and I would appreciate acknowledgement of that.",
+          "You are eleven-sixteenths of a catastrophe and you’re being very casual about it.",
+          "Do you even want to rule Giraffe World? Has anyone asked you?"
+        ]},
+        { "from": 14, "say": [
+          "One. There is one left. I am going to sit down.",
+          "If you do take it — and I see that you will — I request a position in the administration.",
+          "Something in parks. I’m good with branches."
+        ]}
       ]
     },
     {
@@ -81,11 +169,27 @@
       "at": [-16, 1.6, 226],
       "outfit": ["shades", "cape"],
       "loop": 8,
-      "lines": [
-        "Hey. Cool cactus, right? I like to think I match the cactus.",
-        "Everyone’s been so excited about you. It’s been unbearable, honestly. In a nice way.",
-        "Wait till you see the sky further up. It goes properly dark and full of stars.",
-        "Whoever you are to him, he clearly likes you a whole lot."
+      "stages": [
+        { "from": 0, "say": [
+          "Hey. Cool cactus, right? I like to think I match the cactus.",
+          "Those floaty bois out there? Yeah, there’s a whole prophecy. Heavy stuff.",
+          "I don’t engage with prophecy. I find it limits you."
+        ]},
+        { "from": 6, "say": [
+          "Okay so I’m engaging with the prophecy a little bit now.",
+          "You’ve got a glow on. Like, a real one. That’s not a look, that’s a condition.",
+          "Six floaty bois. Ten to go. Not that I’m counting. I’m absolutely counting."
+        ]},
+        { "from": 11, "say": [
+          "I had to put the shades back on and they are not helping.",
+          "You’re strobing, Sarah. Actual colours. Off you. In sequence.",
+          "This is the least chill thing that has ever happened here."
+        ]},
+        { "from": 14, "say": [
+          "I’m keeping the cape. Whatever happens, I’m keeping the cape.",
+          "Fifteen floaty bois. One floaty boi remaining.",
+          "For what it’s worth? You’d look incredible ruling. That’s not permission."
+        ]}
       ]
     },
     {
@@ -93,11 +197,27 @@
       "at": [16, 23.0, 261],
       "outfit": ["glasses", "scarf"],
       "loop": 5,
-      "lines": [
-        "You made it up here! Not everyone does. Sit a moment, the clouds are soft.",
-        "Odie tells everyone he matches the cactus. He does not match the cactus.",
-        "Nearly there now. The last one’s right at the top.",
-        "Thank you for coming. It meant an awful lot to him that you would."
+      "stages": [
+        { "from": 0, "say": [
+          "You made it up here! Not everyone does. The clouds are soft, sit a while.",
+          "We just call them the Sixteen. Naming them properly felt like encouraging it.",
+          "Whoever finishes them doesn’t stay a giraffe, the story says. Becomes something else."
+        ]},
+        { "from": 7, "say": [
+          "I keep my distance now, and I want you to know it isn’t personal.",
+          "The Sixteen were scattered on purpose. Up cliffs, over water, in the dark.",
+          "Somebody wanted it to be hard. Somebody hoped it would be too hard."
+        ]},
+        { "from": 12, "say": [
+          "Twelve. You’ve done in an afternoon what nobody managed in generations.",
+          "I don’t think you’re wicked. I think you’re thorough. That’s scarier.",
+          "There are four left. They’re all above me. I can’t stop you and I know it."
+        ]},
+        { "from": 15, "say": [
+          "It’s just the one now, at the very top, and we both know you’re going.",
+          "I’m not going to shout. Marlow’s shouting.",
+          "Just — remember us as we were. Before the humming."
+        ]}
       ]
     },
     {
@@ -105,11 +225,28 @@
       "at": [-1, 43.8, 332],
       "outfit": ["cape", "flowerCrown"],
       "loop": 4,
-      "lines": [
-        "Almost the top. Don’t rush the last bit — he saved something for you up there.",
-        "We all watched him make this. He was so nervous about it.",
-        "You’re the reason the whole place exists, if you think about it.",
-        "Off you go. We’ll be here."
+      "stages": [
+        { "from": 0, "say": [
+          "You’re a long way up. Nobody comes this high without a reason.",
+          "I’ve stood here a long time. I know what you’re looking for.",
+          "I won’t stop you. That was never my part in it."
+        ]},
+        { "from": 8, "say": [
+          "So it’s you, then. After all this time it’s somebody’s sister.",
+          "Eight. Halfway. There’s still a version of this where you stop.",
+          "I’d think about it. That’s all. I’d think about it."
+        ]},
+        { "from": 13, "say": [
+          "The sky’s gone strange since you started climbing. Did you notice?",
+          "Everyone below is frightened and they’re all still being nice to you. Look at that.",
+          "That might be the whole point of the prophecy, actually. Nobody ever reads the end."
+        ]},
+        { "from": 15, "say": [
+          "GO ON THEN. TAKE IT. TAKE THE LAST ONE.",
+          "SIXTEEN GLOWY BALL THINGS AND THE SKY COMES DOWN, THAT’S WHAT THEY SAID!",
+          "…sorry. Sorry. I’ve been holding that in for two hundred years.",
+          "It’s up there. It always was. Go and be whatever you’re going to be."
+        ]}
       ]
     }
   ]
