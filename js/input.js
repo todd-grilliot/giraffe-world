@@ -120,6 +120,20 @@ export class Input {
     return { x, z, jump, jumpHeld: this.jumpHeld };
   }
 
+  /** Raw stick, ignoring the camera. -1..1 on each axis. Used by the fly-around. */
+  raw() {
+    const k = this.keys;
+    let x = 0, y = 0;
+    if (k.has('w') || k.has('arrowup'))    y -= 1;
+    if (k.has('s') || k.has('arrowdown'))  y += 1;
+    if (k.has('d') || k.has('arrowright')) x += 1;
+    if (k.has('a') || k.has('arrowleft'))  x -= 1;
+    if (Math.abs(this.stick.x) > 0.06 || Math.abs(this.stick.y) > 0.06) {
+      x = this.stick.x; y = this.stick.y;
+    }
+    return { x, y, boost: this.jumpHeld || this._touchJump };
+  }
+
   /** Camera look for this frame, from drag plus Q/E and comma/period. */
   takeLook(dt) {
     const out = { x: this.look.x, y: this.look.y };

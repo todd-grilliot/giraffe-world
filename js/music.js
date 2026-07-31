@@ -36,6 +36,12 @@ export class Music {
     this._play(this.theme);
   }
 
+  /** Cut straight to the title track — for the ending. */
+  playThemeNow() {
+    if (!this.playing) return;
+    this._play(this.theme);
+  }
+
   setEnabled(on) {
     this.on = on;
     if (!on) {

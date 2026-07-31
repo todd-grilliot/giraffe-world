@@ -45,7 +45,10 @@ export class UI {
     });
 
     // --- finale ---
-    $('finale-close').addEventListener('click', () => this.hide('finale'));
+    $('finale-close').addEventListener('click', () => {
+      this.hooks.onFinaleClosed?.();
+      this.hide('finale');
+    });
 
     // --- sound ---
     $('hud-sound').addEventListener('click', () => {
@@ -219,6 +222,52 @@ export class UI {
     el.classList.add('show');
     clearTimeout(this._npTimer);
     this._npTimer = setTimeout(() => el.classList.remove('show'), 4800);
+  }
+
+  // ------------------------------------------------------------- the ending
+
+  showCongrats() {
+    const el = $('congrats');
+    el.classList.remove('hidden', 'fading');
+    // let it sit a while, then fade so it stops covering the flying
+    clearTimeout(this._congratsTimer);
+    this._congratsTimer = setTimeout(() => el.classList.add('fading'), 5200);
+  }
+
+  /**
+   * A +10 where the thing was. Pooled: at most a dozen live at once, and each
+   * reuses a node instead of churning the DOM while she's ploughing through
+   * scenery at speed.
+   */
+  popScore(worldPos, camera) {
+    const now = performance.now();
+    if (now - (this._lastPop || 0) < 45) return;   // don't stack them on one frame
+    this._lastPop = now;
+
+    if (!this._pool) {
+      this._pool = [];
+      this._poolAt = 0;
+      const host = $('scores');
+      for (let i = 0; i < 12; i++) {
+        const d = document.createElement('div');
+        d.className = 'score-pop';
+        d.textContent = '+10';
+        d.style.display = 'none';
+        host.append(d);
+        this._pool.push(d);
+      }
+    }
+
+    const v = worldPos.clone().project(camera);
+    if (v.z > 1) return;                            // behind the camera
+    const el = this._pool[this._poolAt];
+    this._poolAt = (this._poolAt + 1) % this._pool.length;
+    el.style.display = 'none';
+    // reflow so the animation restarts even if this node was mid-flight
+    void el.offsetWidth;
+    el.style.left = `${(v.x * 0.5 + 0.5) * 100}%`;
+    el.style.top  = `${(-v.y * 0.5 + 0.5) * 100}%`;
+    el.style.display = '';
   }
 
   toast(msg, ms = 2600) {

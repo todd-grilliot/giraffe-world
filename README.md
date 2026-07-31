@@ -63,6 +63,31 @@ The `finale` block shows once she's found all sixteen. Make it the one that matt
 
 ---
 
+## The ending
+
+Find all sixteen and the last note gives way to a CONGRATULATIONS card. Press
+**Fly** and the platformer stops: the giraffe goes horizontal, leaves a rainbow
+ribbon and a trail of sparks, and can be flown anywhere across a much larger
+map at speed. There's no collision any more — fly through a tree, a platform,
+the house, and it shatters and tumbles away. Birds circle the map and can be
+knocked out of the air. Everything you hit throws a **+10** on screen. The
+points aren't counted; they're just nice.
+
+The sky becomes a gradient that drifts through the spectrum as she moves, so
+the backdrop is never the same twice.
+
+It's built to survive a phone: every effect is a fixed-size pool — one ribbon
+mesh, one sparkle cloud, one batch of debris, three instanced meshes for all
+the birds — so nothing is allocated per frame and nothing grows however long
+she flies. The whole thing runs in about 37 draw calls. Shadows are switched
+off on take-off, since there's no sensible shadow frustum once she's crossing
+the entire map and it buys back the most expensive thing on screen.
+
+`js/celebration.js` holds all of it; the constants at the top (speed, turn
+rate, pool sizes, hit radius, map bounds) are the knobs.
+
+---
+
 ## The music
 
 Your album, *Demos for Days*, re-encoded for the web (40MB → 17MB) and sitting

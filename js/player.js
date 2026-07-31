@@ -535,6 +535,25 @@ export class Player {
   }
 }
 
+/** Superman: arms forward, legs trailing, neck stretched out along the flight. */
+Player.prototype.flyPose = function (t, roll) {
+  const f = this.rig;
+  const flap = Math.sin(t * 6) * 0.1;
+  f.body.scale.set(1, 1, 1);
+  f.body.rotation.x = 0;
+  f.body.position.y = 0;
+  f.armL.rotation.set(-2.5, 0, 0.25 + flap);
+  f.armR.rotation.set(-2.5, 0, -0.25 - flap);
+  f.legL.rotation.set(0.35 + flap * 0.5, 0, 0);
+  f.legR.rotation.set(0.35 - flap * 0.5, 0, 0);
+  f.neck.rotation.set(-0.55 + Math.sin(t * 3) * 0.05, 0, -roll * 0.35);
+  f.head.rotation.set(0.45, 0, 0);
+  f.tail.rotation.set(0.5 + Math.sin(t * 7) * 0.2, 0, 0);
+  f.earL.rotation.z =  0.55 + flap;
+  f.earR.rotation.z = -0.55 - flap;
+  this.blob.visible = false;
+};
+
 function turnToward(from, to, step) {
   let d = ((to - from + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
   if (Math.abs(d) <= step) return to;

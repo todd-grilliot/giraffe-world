@@ -309,7 +309,7 @@ export function buildWorld(scene) {
   };
 
   // ======================================================= 1. HOME MEADOW
-  b.plat(0, 0, 20, 48, 78, GRASS, { thickness: 3 });
+  b.plat(0, 0, 18.5, 48, 75, GRASS, { thickness: 3 });   // stops at z=56, where the water begins
   cp(0, 2.2, -6);
 
   // little house
@@ -354,9 +354,8 @@ export function buildWorld(scene) {
 
   // ======================================================= 2. THE CREEK
   b.water(-30, 56, 30, 128, -1.4);
-  b.plat(-22, 0, 92, 16, 74, GRASS_D, { thickness: 3 });   // west bank
-  b.plat(24,  0, 92, 14, 74, GRASS_D, { thickness: 3 });   // east bank
-  b.plat(0,   0, 58, 48, 8,  GRASS_D, { thickness: 3 });   // near shore
+  b.plat(-22, 0, 92.5, 16, 73, GRASS_D, { thickness: 3 });  // west bank, abuts the meadow at z=56
+  b.plat(24,  0, 92.5, 14, 73, GRASS_D, { thickness: 3 });  // east bank
 
   trees(b, [
     { x: -20, y: 0, z: 68 }, { x: -24, y: 0, z: 88 }, { x: -19, y: 0, z: 110 },
@@ -366,10 +365,10 @@ export function buildWorld(scene) {
 
   // stepping stones, zig-zagging north
   const stones = [
-    [-3, 0.8, 66], [3.5, 1.1, 72], [-2, 1.4, 78], [4.5, 1.1, 84],
+    [-3, 0.8, 62], [3.5, 1.1, 72], [-2, 1.4, 78], [4.5, 1.1, 84],
   ];
   for (const [x, y, z] of stones) b.plat(x, y, z, 4.8, 4.8, STONE, { thickness: 2.6 });
-  sparkArc(0, 0, 60, -3, 0.8, 66, 3);
+  sparkArc(0, 0, 57, -3, 0.8, 62, 3);
   for (let i = 0; i < stones.length - 1; i++) {
     sparkArc(stones[i][0], stones[i][1], stones[i][2], stones[i+1][0], stones[i+1][1], stones[i+1][2], 2);
   }
@@ -392,14 +391,16 @@ export function buildWorld(scene) {
   // memory 6 — across two sliding lily pads
   b.moving(2, 4.0, 114, 6.5, 6.5, 0x579c68, { axis: 'x', amp: 6, period: 7.5, thickness: 0.7 });
   b.moving(-4, 5.4, 122, 6.5, 6.5, 0x579c68, { axis: 'x', amp: 5.5, period: 6.5, phase: 0.5, thickness: 0.7 });
-  b.plat(-14, 6.4, 128, 9, 8, GRASS_D, { thickness: 4 });
-  mem(-14, 7.8, 128);
-  cp(-14, 7.8, 128);
+  b.plat(-14, 6.4, 126, 9, 6, GRASS_D, { thickness: 4 });
+  mem(-14, 7.8, 126);
+  cp(-14, 7.8, 126);
 
   // ======================================================= 3. THE DEEP WOODS
   b.plat(0, 6.4, 152, 46, 46, 0x4b6b3f, { thickness: 4 });
-  trees(b, Array.from({ length: 26 }, () => ({
-    x: rr(-22, 22), y: 6.4, z: rr(132, 174), h: rr(7, 13),
+  // Kept to the edges: trees through the middle of the wood spent most of
+  // their time between the camera and the giraffe.
+  trees(b, Array.from({ length: 15 }, () => ({
+    x: (rr(0, 1) < 0.5 ? -1 : 1) * rr(12, 22), y: 6.4, z: rr(132, 174), h: rr(7, 13),
   })), { trunk: 0x59402c, leaf: 0x36613c, leaf2: 0x2c5233 });
   tufts(b, Array.from({ length: 34 }, () => ({ x: rr(-21, 21), y: 6.4, z: rr(132, 174) })), 0x3f6b3a);
   rocks(b, Array.from({ length: 10 }, () => ({ x: rr(-20, 20), y: 6.8, z: rr(134, 172), s: rr(0.6, 1.6) })), 0x6d6a5e);
@@ -450,7 +451,7 @@ export function buildWorld(scene) {
 
   // ramp back down toward the sea
   for (let i = 0; i < 6; i++) {
-    b.plat(14 - i * 1.2, 25.4 - i * 3.8, 196 + i * 5.5, 7.5 - i * 0.2, 6.5, i < 3 ? 0x54764a : SAND, { thickness: 1.4 });
+    b.plat(14 - i * 1.2, 25.4 - i * 3.8, 198.25 + i * 5.5, 7.5 - i * 0.2, 6.5, i < 3 ? 0x54764a : SAND, { thickness: 1.4 });
   }
 
   // ======================================================= 4. THE COAST
@@ -471,14 +472,14 @@ export function buildWorld(scene) {
 
   // memory 11 — end of the pier
   for (let i = 0; i < 8; i++) {
-    b.plat(-8 - i * 0.4, 2.6, 236 + i * 3.2, 4.4, 3.4, WOOD, { thickness: 0.5 });
+    b.plat(-8 - i * 0.4, 2.6, 236 + i * 3.2, 4.4, 3.2, WOOD, { thickness: 0.5 });
     b.deco(new THREE.CylinderGeometry(0.22, 0.22, 4, 5), b.mat(0x7a5a3a), -8 - i * 0.4 - 1.6, 0.6, 236 + i * 3.2);
     b.deco(new THREE.CylinderGeometry(0.22, 0.22, 4, 5), b.mat(0x7a5a3a), -8 - i * 0.4 + 1.6, 0.6, 236 + i * 3.2);
   }
-  b.plat(-11.2, 2.6, 262, 7, 7, WOOD, { thickness: 0.6 });
-  mem(-11.2, 4.0, 262);
+  b.plat(-11.2, 2.6, 263.5, 7, 7, WOOD, { thickness: 0.6 });
+  mem(-11.2, 4.0, 263.5);
   sparkArc(-8, 2.6, 238, -11, 2.6, 258, 6);
-  cp(-11.2, 4.0, 262);
+  cp(-11.2, 4.0, 263.5);
 
   // memory 12 — bobbing rafts out on the water
   b.moving(-2, 3.2, 258, 7, 7, 0xa87f52, { axis: 'y', amp: 0.8, period: 4, thickness: 0.6 });
@@ -551,7 +552,7 @@ export function buildWorld(scene) {
   // memory 16 — the top of everything
   b.plat(-1, 46.6, 342, 7, 7, CLOUD, { thickness: 1.4 });
   cloudify(-1, 46.6, 342, 7);
-  b.plat(-1, 49.4, 351, 12, 12, 0xf0f5ff, { thickness: 3 });
+  b.plat(-1, 49.4, 351, 12, 12, 0xf0f5ff, { thickness: 2.4 });
   cloudify(-1, 49.4, 351, 12);
   mem(-1, 51.3, 351);
   sparkArc(-1, 43.8, 337, -1, 49.4, 347, 4);

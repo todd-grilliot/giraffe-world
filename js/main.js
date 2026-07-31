@@ -10,6 +10,7 @@ import { Memories, Sparks, Companion } from './memories.js';
 import { UI } from './ui.js';
 import { Sound } from './audio.js';
 import { Music } from './music.js';
+import { Celebration } from './celebration.js';
 import * as Save from './save.js';
 
 const canvas = document.getElementById('scene');
@@ -80,6 +81,7 @@ async function boot() {
   const companion = new Companion(scene);
   const sound     = new Sound();
   const music     = musicData ? new Music(musicData, (t) => ui.nowPlaying(t.title)) : null;
+  let celebration = null;   // built on demand — costs nothing until she finishes
 
   // ------------------------------------------------------------ state
   const state = Save.load();
@@ -99,6 +101,7 @@ async function boot() {
 
   let running = false;
   let pendingFinale = false;
+  let finaleJustClosed = false;
 
   const ui = new UI(data, {
     getFound: () => found,
@@ -115,8 +118,30 @@ async function boot() {
         persist();
         sound.finale();
         setTimeout(() => ui.showFinale(), 450);
+      } else if (finaleJustClosed) {
+        finaleJustClosed = false;
+        // Shadow maps are the most expensive thing on screen and there is no
+        // stable frustum to fit once she's crossing the whole map — drop them
+        // and spend the budget on the trail and the wreckage instead.
+        renderer.shadowMap.enabled = false;
+        sun.position.set(120, 260, -80);
+        sun.target.position.set(0, 0, 180);
+        sun.target.updateMatrixWorld();
+        sun.color.set(0xffffff);
+        sun.intensity = 1.25;
+        // flat, bright light from every side, so the giraffe never reads as a
+        // dark speck against a bright sky
+        ambient.intensity = 0.95;
+        hemi.intensity = 0.9;
+        hemi.color.set(0xffffff);
+        hemi.groundColor.set(0xbcc6e8);
+        stars.visible = false;
+        celebration.start();
+        sound.finale();
+        music?.playThemeNow();
       }
     },
+    onFinaleClosed() { finaleJustClosed = true; },
     onUnlock() { state.unlocked = true; persist(); },
     onReset() { Save.clear(); location.reload(); },
     onSoundToggle() {
@@ -128,8 +153,11 @@ async function boot() {
     },
   });
 
+  celebration = new Celebration(scene, camera, world, player, ui);
+
   // handy from the browser console when tweaking the world
-  window.__sw = { player, chase, world, memories, sparks, input, ui, sound, music, renderer, scene, camera };
+  window.__sw = { player, chase, world, memories, sparks, input, ui, sound, music,
+                  celebration, renderer, scene, camera };
 
   ui.setCount(found.size);
   ui.setSparks(sparks.taken);
@@ -197,6 +225,15 @@ async function boot() {
     const blocked = ui.isBlocking() || !running;
 
     world.update(t);
+
+    // Once she's flying, the platformer stops: no collision, no pickups, no
+    // chase camera. The celebration drives everything.
+    if (celebration.active) {
+      if (!ui.isBlocking()) celebration.update(dt, input);
+      input.takeLook(dt);
+      renderer.render(scene, camera);
+      return;
+    }
 
     if (!blocked) {
       chase.basis(basis);
