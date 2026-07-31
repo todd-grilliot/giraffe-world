@@ -12,6 +12,7 @@ export class Input {
     this._dragId   = null;
     this._last     = { x: 0, y: 0 };
     this._touchJump = false;
+    this._talkEdge  = false;
 
     this.isTouch = matchMedia('(hover: none) and (pointer: coarse)').matches
                  || navigator.maxTouchPoints > 1;
@@ -22,6 +23,7 @@ export class Input {
       const k = e.key.toLowerCase();
       this.keys.add(k);
       if (k === ' ' || k === 'spacebar') { this.jumpEdge = true; e.preventDefault(); }
+      if (k === 'e') this._talkEdge = true;
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
     });
     addEventListener('keyup', (e) => { this.keys.delete(e.key.toLowerCase()); });
@@ -131,7 +133,18 @@ export class Input {
     if (Math.abs(this.stick.x) > 0.06 || Math.abs(this.stick.y) > 0.06) {
       x = this.stick.x; y = this.stick.y;
     }
-    return { x, y, boost: this.jumpHeld || this._touchJump };
+    // sample() isn't running during the fly-around, so keep these current here
+    this.jumpHeld = k.has(' ') || k.has('spacebar') || this._touchJump;
+    const press = this.jumpEdge;
+    this.jumpEdge = false;
+    return { x, y, press, boost: this.jumpHeld };
+  }
+
+  /** True once per press of the talk key. */
+  takeTalk() {
+    const t = this._talkEdge;
+    this._talkEdge = false;
+    return t;
   }
 
   /** Camera look for this frame, from drag plus Q/E and comma/period. */

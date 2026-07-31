@@ -57,9 +57,24 @@ This keeps casual visitors out; it is **not** security. The repo is public, so
 anyone who goes looking can read the files directly. That was a deliberate
 trade — GitHub Pages needs a public repo on a free account.
 
-### The ending
+### The ending note
 
 The `finale` block shows once she's found all sixteen. Make it the one that matters.
+
+---
+
+## The neighbours
+
+Eight other giraffes live here, each in a different outfit. Walk up to one and a
+prompt appears; press **E** (or the on-screen TALK button) to hear their next
+line, and again for the one after. They wander their patch with their arms in
+the air, and during the fly-around they scatter instead.
+
+`data/npcs.json` is all of it — names, where they stand, what they wear, and
+everything they say. The lines in there now are placeholders in the same spirit
+as the notes; rewrite them however you like. Outfits come from `OUTFITS` in
+`js/giraffe.js`: topHat, partyHat, beanie, sunHat, flowerCrown, glasses, shades,
+scarf, bowTie, sweater, cape, backpack.
 
 ---
 

@@ -15,19 +15,30 @@ const BIRDS   = 18;
 const FLYING  = 18;    // how many smashed objects can be in the air at once
 
 const SPEED      = 46;
-const BOOST      = 78;
 const TURN       = 2.0;
 const PITCH_RATE = 1.5;
 const HIT_RADIUS = 4.6;
+
+// The corkscrew: press jump for a barrel roll and a shove of speed.
+const SPIN_TIME  = 0.75;   // one move, two full rotations
+const SPIN_SPEED = 104;    // top speed at the start of the roll
+const SPIN_TURNS = 2;
+
+const SCORE_THING = 10;
+const SCORE_NPC   = 200;
+const SCORE_BIRD  = 500;
 
 const BOUNDS = { x: 430, zMin: -220, zMax: 580, yMin: 3, yMax: 250 };
 
 const FORWARD = new THREE.Vector3(0, 0, 1);   // hoisted; this runs every frame
 
 export class Celebration {
-  constructor(scene, camera, world, player, ui) {
+  constructor(scene, camera, world, player, ui, npcs, sound) {
     this.scene = scene; this.camera = camera;
     this.world = world; this.player = player; this.ui = ui;
+    this.npcs = npcs; this.sound = sound;
+    this.spin = 0;        // seconds left in the current corkscrew
+    this.spinRoll = 0;    // how far through the barrel roll we are
     this.active = false;
     this.built = false;
     this.time = 0;
@@ -184,17 +195,26 @@ export class Celebration {
       this.buckets.get(k).push(item);
     };
     const m4 = new THREE.Matrix4(), p = new THREE.Vector3();
-    for (const child of this.world.group.children) {
-      if (child.isInstancedMesh) {
-        for (let i = 0; i < child.count; i++) {
-          child.getMatrixAt(i, m4);
-          p.setFromMatrixPosition(m4);
-          push({ kind: 'inst', mesh: child, index: i, pos: p.clone(), dead: false });
+    // Recurse: the cacti and other props are Groups of meshes, and their parts
+    // would otherwise be invisible to this and survive being flown through.
+    const collect = (node) => {
+      for (const child of node.children) {
+        if (child.isInstancedMesh) {
+          for (let i = 0; i < child.count; i++) {
+            child.getMatrixAt(i, m4);
+            p.setFromMatrixPosition(m4);
+            push({ kind: 'inst', mesh: child, index: i, pos: p.clone(), dead: false });
+          }
+        } else if (child.isMesh && child.visible && child.geometry?.type !== 'PlaneGeometry') {
+          child.updateWorldMatrix(true, false);
+          p.setFromMatrixPosition(child.matrixWorld);
+          push({ kind: 'mesh', mesh: child, pos: p.clone(), dead: false });
+        } else if (child.isGroup) {
+          collect(child);
         }
-      } else if (child.isMesh && child.visible && child.geometry?.type !== 'PlaneGeometry') {
-        push({ kind: 'mesh', mesh: child, pos: child.position.clone(), dead: false });
       }
-    }
+    };
+    collect(this.world.group);
 
     this.flying = [];
     this._zeroM = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -240,12 +260,28 @@ export class Celebration {
     this.yaw   -= raw.x * TURN * dt;
     this.pitch = THREE.MathUtils.clamp(this.pitch - raw.y * PITCH_RATE * dt, -1.15, 1.15);
     this.pitch += (0 - this.pitch) * dt * 0.25;              // eases back to level
-    this.roll  += ((-raw.x) - this.roll) * Math.min(1, dt * 4);
+
+    // --- corkscrew. Press jump, barrel-roll, and come out of it fast. You
+    // --- can't start another until this one finishes, which is all the
+    // --- limiting it needs.
+    if (raw.press && this.spin <= 0) {
+      this.spin = SPIN_TIME;
+      this.spinRoll = 0;
+      this.sound?.spin();
+    }
+    let speed = SPEED;
+    if (this.spin > 0) {
+      this.spin = Math.max(0, this.spin - dt);
+      const k = this.spin / SPIN_TIME;                       // 1 at the start, 0 at the end
+      this.spinRoll += (SPIN_TURNS * Math.PI * 2 / SPIN_TIME) * dt;
+      speed = SPEED + (SPIN_SPEED - SPEED) * k;
+      this.roll = Math.sin(this.spinRoll) * 0.4;             // steering roll is overridden below
+    } else {
+      this.roll += ((-raw.x) - this.roll) * Math.min(1, dt * 4);
+    }
 
     const cp = Math.cos(this.pitch);
     this.dir.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp).normalize();
-
-    const speed = raw.boost ? BOOST : SPEED;
     this.pos.addScaledVector(this.dir, speed * dt);
 
     // --- big soft boundary
@@ -261,6 +297,7 @@ export class Celebration {
     this._updateTrail(t);
     this._updateSparks(dt, t);
     this._updateBirds(dt, t);
+    this._hitNPCs();
     this._smash(dt);
     this._updateFlying(dt);
     this._updateDebris(dt);
@@ -274,7 +311,8 @@ export class Celebration {
     this._q.setFromUnitVectors(FORWARD, this.dir);
     obj.quaternion.copy(this._q);
     obj.rotateX(Math.PI / 2.05);        // nose-down into the superman lie
-    obj.rotateZ(this.roll * 0.55);
+    // during a corkscrew the whole body rolls right round; otherwise just bank
+    obj.rotateZ(this.spin > 0 ? this.spinRoll : this.roll * 0.55);
     this.player.flyPose(t, this.roll);
   }
 
@@ -297,7 +335,8 @@ export class Celebration {
       this.trailUp[i].copy(this.trailUp[i - 1]);
     }
     this.trailPts[0].copy(this.pos).addScaledVector(this.dir, -3.0);
-    this._v.set(0, 1, 0).applyAxisAngle(this.dir, this.roll * 0.55);
+    // rolling the ribbon's up-vector with the body makes the trail corkscrew too
+    this._v.set(0, 1, 0).applyAxisAngle(this.dir, this.spin > 0 ? this.spinRoll : this.roll * 0.55);
     this.trailUp[0].crossVectors(this.dir, this._v).normalize();
 
     const pos = this.trailGeo.attributes.position.array;
@@ -388,8 +427,9 @@ export class Celebration {
 
       if (b.pos.distanceToSquared(this.pos) < HIT_RADIUS * HIT_RADIUS * 1.6) {
         b.dead = 2.5;
-        this._burst(b.pos, 0x9fb4ff, 7);
-        this.ui.popScore(b.pos, this.camera);
+        this._burst(b.pos, 0x9fb4ff, 12);
+        this.ui.popScore(b.pos, this.camera, SCORE_BIRD, true);
+        this.sound?.birdHit();
       }
     }
     this.birdBody.instanceMatrix.needsUpdate = true;
@@ -420,8 +460,11 @@ export class Celebration {
       item.mesh.instanceMatrix.needsUpdate = true;
       colour = item.mesh.material.color.getHex();
     } else {
-      colour = item.mesh.material.color.getHex();
+      colour = item.mesh.material.color?.getHex?.() ?? 0xffffff;
       if (this.flying.length < FLYING) {
+        // Lift it out of whatever group it was in, keeping its world transform,
+        // so the launch velocity is in world space and not the parent's.
+        this.scene.attach(item.mesh);
         const away = this._v.copy(item.pos).sub(this.pos).normalize();
         this.flying.push({
           mesh: item.mesh, life: 5.5,
@@ -433,7 +476,24 @@ export class Celebration {
       }
     }
     this._burst(item.pos, colour, 6);
-    this.ui.popScore(item.pos, this.camera);
+    this.ui.popScore(item.pos, this.camera, SCORE_THING);
+    this.sound?.smash();
+  }
+
+  /** Clattering into one of the neighbours. Worth a lot more, and much louder. */
+  _hitNPCs() {
+    if (!this.npcs) return;
+    const r2 = HIT_RADIUS * HIT_RADIUS * 2.2;   // they're big, and it should be easy
+    for (const n of this.npcs.list) {
+      if (n.dead) continue;
+      if (n.pos.distanceToSquared(this.pos) > r2) continue;
+      n.dead = true;
+      _hitAt.copy(n.pos).add(_up);
+      this._burst(_hitAt, 0xe8b45c, 22);        // a much bigger shower
+      this._burst(_hitAt, 0xfff0a8, 12);
+      this.ui.popScore(_hitAt, this.camera, SCORE_NPC, true);
+      this.sound?.npcHit();
+    }
   }
 
   _burst(at, colour, n) {
@@ -500,5 +560,7 @@ export class Celebration {
   }
 }
 
+const _hitAt = new THREE.Vector3();
+const _up = new THREE.Vector3(0, 1.2, 0);
 const _c = new THREE.Color();
 function _hsl(h, s, l) { return _c.setHSL(((h % 1) + 1) % 1, s, l); }

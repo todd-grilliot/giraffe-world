@@ -203,12 +203,81 @@ html,body{
   font-family:var(--sans); font-weight:800; font-size:clamp(18px,3.4vw,30px);
   color:#fff5c9; text-shadow:0 2px 10px #000a, 0 0 18px #ffcf5f99;
   animation:scoreFloat 1.15s ease-out both;
+  white-space:nowrap;
+}
+/* the good ones land bigger and louder */
+.score-pop.big{
+  font-size:clamp(30px,6.4vw,58px); font-weight:900; letter-spacing:-.01em;
+  color:#fff; text-shadow:0 3px 16px #000b, 0 0 26px #ff8fd4, 0 0 44px #ffc44d;
+  animation:scoreSlam 1.5s cubic-bezier(.16,1.5,.3,1) both;
 }
 @keyframes scoreFloat{
   0%   { opacity:0; transform:translate(-50%,-50%) scale(.6) }
   18%  { opacity:1; transform:translate(-50%,-72%) scale(1.15) }
   100% { opacity:0; transform:translate(-50%,-180%) scale(.95) }
 }
+@keyframes scoreSlam{
+  0%   { opacity:0; transform:translate(-50%,-50%) scale(.3) rotate(-12deg) }
+  22%  { opacity:1; transform:translate(-50%,-78%) scale(1.5) rotate(4deg) }
+  40%  { transform:translate(-50%,-92%) scale(1.18) rotate(-2deg) }
+  100% { opacity:0; transform:translate(-50%,-210%) scale(1.05) rotate(0deg) }
+}
+
+.score-board{
+  position:absolute; left:50%; transform:translateX(-50%);
+  top:calc(14px + env(safe-area-inset-top,0px));
+  display:flex; align-items:baseline; gap:9px;
+  background:#0b1020a6; border:1px solid #ffffff26; border-radius:14px;
+  padding:8px 18px; color:#fff;
+  backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+}
+.score-label{ font-size:10px; letter-spacing:.15em; text-transform:uppercase; opacity:.6; }
+#score-value{ font-size:22px; font-weight:750; font-variant-numeric:tabular-nums; }
+.score-board.bump #score-value{ animation:scoreBump .35s ease; }
+@keyframes scoreBump{ 50%{ transform:scale(1.28); color:#ffd98a } }
+
+/* ---------- talking to the others ---------- */
+
+.talk-prompt{
+  position:absolute; left:50%; transform:translateX(-50%);
+  bottom:calc(150px + var(--safe-b));
+  background:#0b1020c4; border:1px solid #ffffff2b; border-radius:999px;
+  padding:9px 20px; color:#f2ecdd; font-size:13.5px; letter-spacing:.01em;
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  pointer-events:none; white-space:nowrap;
+  animation:promptIn .25s ease both;
+}
+@keyframes promptIn{ from{ opacity:0; transform:translate(-50%,7px) } to{ opacity:1; transform:translateX(-50%) } }
+
+.talk-btn{
+  position:absolute; right:26px; bottom:calc(152px + var(--safe-b));
+  width:80px; height:80px; border-radius:50%;
+  background:#ffe9a8d9; border:0; color:#3a2c07;
+  font-family:var(--sans); font-size:12px; font-weight:800;
+  letter-spacing:.11em; text-transform:uppercase;
+  pointer-events:auto; touch-action:none; cursor:pointer;
+  box-shadow:0 4px 20px #0007;
+}
+.talk-btn:active{ transform:scale(.93); }
+
+.speech{
+  position:absolute; transform:translate(-50%,-100%);
+  max-width:min(340px, 74vw);
+  background:var(--paper); border-radius:15px; padding:13px 17px 14px;
+  box-shadow:0 14px 40px #00000073, 0 0 0 1px #ffffff1a;
+  pointer-events:none;
+  animation:speechIn .28s cubic-bezier(.2,1.2,.3,1) both;
+}
+.speech::after{
+  content:''; position:absolute; left:50%; bottom:-9px; margin-left:-9px;
+  border:9px solid transparent; border-top-color:var(--paper); border-bottom:0;
+}
+.speech-name{
+  font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
+  color:#a2957e; font-weight:700; margin-bottom:5px;
+}
+.speech-text{ font-size:14.5px; line-height:1.5; color:#332d3f; }
+@keyframes speechIn{ from{ opacity:0; transform:translate(-50%,-88%) scale(.92) } to{ opacity:1; transform:translate(-50%,-100%) scale(1) } }
 
 .toast{
   position:absolute; left:50%; bottom:calc(96px + var(--safe-b));

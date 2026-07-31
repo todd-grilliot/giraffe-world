@@ -11,6 +11,7 @@ import { UI } from './ui.js';
 import { Sound } from './audio.js';
 import { Music } from './music.js';
 import { Celebration } from './celebration.js';
+import { NPCs } from './npcs.js';
 import * as Save from './save.js';
 
 const canvas = document.getElementById('scene');
@@ -23,9 +24,10 @@ boot().catch((err) => {
 
 async function boot() {
   // ------------------------------------------------------------ data
-  const [res, musicRes] = await Promise.all([
+  const [res, musicRes, npcRes] = await Promise.all([
     fetch('data/notes.json', { cache: 'no-cache' }),
     fetch('data/music.json', { cache: 'no-cache' }).catch(() => null),
+    fetch('data/npcs.json',  { cache: 'no-cache' }).catch(() => null),
   ]);
   if (!res.ok) throw new Error(`couldn't read notes.json (${res.status})`);
   const data = await res.json();
@@ -34,6 +36,9 @@ async function boot() {
   // Music is a nice-to-have: if the manifest is missing the game still runs.
   let musicData = null;
   try { if (musicRes && musicRes.ok) musicData = await musicRes.json(); } catch {}
+  let npcData = null;
+  try { if (npcRes && npcRes.ok) npcData = await npcRes.json(); } catch {}
+  if (npcData) { data.npcPrompt = npcData.prompt; data.npcPromptTouch = npcData.promptTouch; }
 
   // ------------------------------------------------------------ renderer
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -102,6 +107,9 @@ async function boot() {
   let running = false;
   let pendingFinale = false;
   let finaleJustClosed = false;
+  let talkingTo = null;
+  let talkTapped = false;
+  document.getElementById('talk-btn').addEventListener('click', () => { talkTapped = true; });
 
   const ui = new UI(data, {
     getFound: () => found,
@@ -153,11 +161,12 @@ async function boot() {
     },
   });
 
-  celebration = new Celebration(scene, camera, world, player, ui);
+  const npcs = new NPCs(scene, world, npcData);
+  celebration = new Celebration(scene, camera, world, player, ui, npcs, sound);
 
   // handy from the browser console when tweaking the world
   window.__sw = { player, chase, world, memories, sparks, input, ui, sound, music,
-                  celebration, renderer, scene, camera };
+                  celebration, npcs, renderer, scene, camera };
 
   ui.setCount(found.size);
   ui.setSparks(sparks.taken);
@@ -205,7 +214,11 @@ async function boot() {
     chase.distScale = THREE.MathUtils.lerp(1, 1.45, tall);
     camera.updateProjectionMatrix();
 
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    // Phones are fill-rate bound long before they're draw-call bound, and a
+    // retina phone renders four times the pixels for very little visible gain
+    // on geometry this simple. Cap harder on touch screens.
+    const cap = input.isTouch ? 1.5 : 2;
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, cap));
     renderer.setSize(w, h, false);
   }
 
@@ -229,7 +242,10 @@ async function boot() {
     // Once she's flying, the platformer stops: no collision, no pickups, no
     // chase camera. The celebration drives everything.
     if (celebration.active) {
-      if (!ui.isBlocking()) celebration.update(dt, input);
+      if (!ui.isBlocking()) {
+        celebration.update(dt, input);
+        npcs.update(dt, t, celebration.pos, true);
+      }
       input.takeLook(dt);
       renderer.render(scene, camera);
       return;
@@ -245,6 +261,8 @@ async function boot() {
       handleEvents();
       checkPickups();
       checkCheckpoints();
+      npcs.update(dt, t, player.pos, false);
+      handleTalking();
     } else {
       // keep the camera alive so the world still breathes behind a modal
       chase.update(dt, player, { x: 0, y: 0 }, false);
@@ -292,6 +310,42 @@ async function boot() {
       ui.setSparks(sparks.taken);
       sound.spark();
       if (sparks.taken % 25 === 0) persist();
+    }
+  }
+
+  /**
+   * Walk up to one of the others and a prompt appears; press E (or the on-screen
+   * button) to hear their next line. Walking off ends the conversation.
+   */
+  const speechAt = new THREE.Vector3();
+  function handleTalking() {
+    const near = npcs.nearest(player.pos);
+    const pressed = input.takeTalk() || talkTapped;
+    talkTapped = false;
+
+    if (!near) {
+      if (talkingTo) { ui.hideSpeech(); talkingTo = null; }
+      ui.hideTalkPrompt();
+      return;
+    }
+
+    if (talkingTo !== near) ui.showTalkPrompt(input.isTouch);
+
+    if (pressed) {
+      const line = npcs.say(near);
+      if (line) {
+        talkingTo = near;
+        ui.showSpeech(near.name, line);
+        sound.talk();
+      }
+    }
+
+    if (talkingTo === near) {
+      speechAt.set(near.pos.x, near.pos.y + 2.35, near.pos.z);
+      ui.placeSpeech(speechAt, camera);
+    } else if (talkingTo) {
+      ui.hideSpeech();
+      talkingTo = null;
     }
   }
 

@@ -1,0 +1,116 @@
+{
+  "_readme": [
+    "The other giraffes. Walk up to one and a prompt appears; press E (or tap the",
+    "TALK button) to hear them. Each press moves to their next line and then loops.",
+    "",
+    "Everything here is safe to rewrite — these are just placeholder personalities.",
+    "`at` is where they stand: [x, y, z]. `outfit` is a list from OUTFITS in",
+    "js/giraffe.js: topHat, partyHat, beanie, sunHat, flowerCrown, glasses, shades,",
+    "scarf, bowTie, sweater, cape, backpack. `loop` is how wide a circle they",
+    "wander in.",
+    "",
+    "During the fly-around at the end they scatter instead of talking."
+  ],
+
+  "prompt": "Press E to talk",
+  "promptTouch": "Tap TALK",
+
+  "people": [
+    {
+      "name": "Juniper",
+      "at": [7, 0, 14],
+      "outfit": ["sunHat", "scarf"],
+      "loop": 5,
+      "lines": [
+        "Oh! You must be Sarah. We’ve been hoping you’d come.",
+        "Todd built all of this, you know. Every hill of it.",
+        "He kept moving that little house around until it looked right. Took him ages.",
+        "Go on — follow the light. It knows where it’s going."
+      ]
+    },
+    {
+      "name": "Marlow",
+      "at": [-17, 0, 38],
+      "outfit": ["beanie", "backpack"],
+      "loop": 7,
+      "lines": [
+        "Morning! Lovely day for it. Every day’s a lovely day here, mind.",
+        "Don’t tell Juniper I said so, but she’s been practising that greeting all week.",
+        "There are sixteen lanterns out there. Sixteen! He counted them out on his hooves.",
+        "If you fall, you just turn up again somewhere safe. Nothing here can really hurt you."
+      ]
+    },
+    {
+      "name": "Pip",
+      "at": [-7, 1.6, 88],
+      "outfit": ["partyHat"],
+      "loop": 4,
+      "lines": [
+        "I’ve had this hat on for three days in case you turned up. Worth it.",
+        "Bertrand said you wouldn’t come. Bertrand says a lot of things.",
+        "Is it true you two used to fight over the front seat? Marlow heard that somewhere.",
+        "Take your time! Nobody here is in a hurry. We live in a meadow."
+      ]
+    },
+    {
+      "name": "Clementine",
+      "at": [-15, 6.4, 138],
+      "outfit": ["flowerCrown", "sweater"],
+      "loop": 6,
+      "lines": [
+        "Careful in the trees, it gets a bit dim. Beautiful though.",
+        "He wrote all those notes himself. Sat there for hours getting them right.",
+        "I do hope she likes it, he kept saying. I do hope she likes it.",
+        "You do, don’t you? Like it? I’ll tell him you smiled."
+      ]
+    },
+    {
+      "name": "Bertrand",
+      "at": [14, 25.4, 189],
+      "outfit": ["topHat", "bowTie"],
+      "loop": 5,
+      "lines": [
+        "Ah. The sister. Delighted, genuinely delighted.",
+        "I maintain the high branches. Somebody has to, and it isn’t going to be Pip.",
+        "I never said you wouldn’t come. I said it was a long way. Different thing entirely.",
+        "The view from up here is the best in the world. He made it that way on purpose."
+      ]
+    },
+    {
+      "name": "Odie",
+      "at": [-16, 1.6, 226],
+      "outfit": ["shades", "cape"],
+      "loop": 8,
+      "lines": [
+        "Hey. Cool cactus, right? I like to think I match the cactus.",
+        "Everyone’s been so excited about you. It’s been unbearable, honestly. In a nice way.",
+        "Wait till you see the sky further up. It goes properly dark and full of stars.",
+        "Whoever you are to him, he clearly likes you a whole lot."
+      ]
+    },
+    {
+      "name": "Winnifred",
+      "at": [16, 23.0, 261],
+      "outfit": ["glasses", "scarf"],
+      "loop": 5,
+      "lines": [
+        "You made it up here! Not everyone does. Sit a moment, the clouds are soft.",
+        "Odie tells everyone he matches the cactus. He does not match the cactus.",
+        "Nearly there now. The last one’s right at the top.",
+        "Thank you for coming. It meant an awful lot to him that you would."
+      ]
+    },
+    {
+      "name": "Sage",
+      "at": [-1, 43.8, 332],
+      "outfit": ["cape", "flowerCrown"],
+      "loop": 4,
+      "lines": [
+        "Almost the top. Don’t rush the last bit — he saved something for you up there.",
+        "We all watched him make this. He was so nervous about it.",
+        "You’re the reason the whole place exists, if you think about it.",
+        "Off you go. We’ll be here."
+      ]
+    }
+  ]
+}

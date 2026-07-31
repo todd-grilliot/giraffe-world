@@ -1,15 +1,20 @@
 // Everything that isn't 3D: the gate, the title card, the HUD, the note that
 // pops when you find a lantern, the journal, and the ending.
 
+import * as THREE from 'three';
+
 const $ = (id) => document.getElementById(id);
+const _proj = new THREE.Vector3();   // scratch, so projecting doesn't allocate
 
 const norm = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '');
+const clamp01 = (v) => Math.max(0.04, Math.min(0.96, v));
 
 export class UI {
   constructor(data, hooks) {
     this.data  = data;
     this.hooks = hooks;          // { onStart, onReset, onSoundToggle, onClose }
     this.open  = null;           // which screen is currently up
+    this.score = 0;
     this._gateTries = 0;
     this._toastTimer = null;
 
@@ -247,19 +252,29 @@ export class UI {
 
     clearTimeout(this._congratsA);
     clearTimeout(this._congratsB);
-    card('CONGRAGULATION!', 2000, () => {
+    card('CONGRATULATIONS!', 2000, () => {
       card('You’re the best sister!', 4000, () => el.classList.add('hidden'));
     });
   }
 
   /**
-   * A +10 where the thing was. Pooled: at most a dozen live at once, and each
-   * reuses a node instead of churning the DOM while she's ploughing through
-   * scenery at speed.
+   * A score pop where the thing was, and the running total. Pooled: at most a
+   * dozen nodes live at once and each is reused, rather than churning the DOM
+   * while she's ploughing through scenery at speed.
+   *
+   * `big` is for the ones worth making a fuss about — giraffes and birds.
    */
-  popScore(worldPos, camera) {
+  popScore(worldPos, camera, amount = 10, big = false) {
+    this.score = (this.score || 0) + amount;
+    const board = $('score-board');
+    board.classList.remove('hidden', 'bump');
+    void board.offsetWidth;
+    board.classList.add('bump');
+    $('score-value').textContent = this.score.toLocaleString();
+
     const now = performance.now();
-    if (now - (this._lastPop || 0) < 45) return;   // don't stack them on one frame
+    // small hits are throttled so they can't spam; the big ones always show
+    if (!big && now - (this._lastPop || 0) < 45) return;
     this._lastPop = now;
 
     if (!this._pool) {
@@ -269,23 +284,66 @@ export class UI {
       for (let i = 0; i < 12; i++) {
         const d = document.createElement('div');
         d.className = 'score-pop';
-        d.textContent = '+10';
         d.style.display = 'none';
         host.append(d);
         this._pool.push(d);
       }
     }
 
-    const v = worldPos.clone().project(camera);
-    if (v.z > 1) return;                            // behind the camera
+    const v = _proj.copy(worldPos).project(camera);
+    const behind = v.z > 1;
+    // A small hit behind the camera isn't worth showing; a giraffe or a bird is,
+    // so put it on screen rather than throwing the moment away.
+    if (behind && !big) return;
     const el = this._pool[this._poolAt];
     this._poolAt = (this._poolAt + 1) % this._pool.length;
     el.style.display = 'none';
     // reflow so the animation restarts even if this node was mid-flight
     void el.offsetWidth;
+    el.textContent = '+' + amount;
+    el.className = 'score-pop' + (big ? ' big' : '');
+    const px = behind ? 50 : clamp01(v.x * 0.5 + 0.5) * 100;
+    const py = behind ? 46 : clamp01(-v.y * 0.5 + 0.5) * 100;
+    el.style.left = `${px}%`;
+    el.style.top  = `${py}%`;
+    el.style.display = '';
+  }
+
+  // ------------------------------------------------------------- talking
+
+  showTalkPrompt(touch) {
+    const p = $('talk-prompt');
+    if (p.classList.contains('hidden')) {
+      p.textContent = touch ? (this.data.npcPromptTouch || 'Tap TALK') : (this.data.npcPrompt || 'Press E to talk');
+      p.classList.remove('hidden');
+    }
+    if (touch) $('talk-btn').classList.remove('hidden');
+  }
+
+  hideTalkPrompt() {
+    $('talk-prompt').classList.add('hidden');
+    $('talk-btn').classList.add('hidden');
+  }
+
+  showSpeech(name, text) {
+    $('speech-name').textContent = name;
+    $('speech-text').textContent = text;
+    const el = $('speech');
+    el.classList.remove('hidden');
+    el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  }
+
+  hideSpeech() { $('speech').classList.add('hidden'); }
+
+  /** Keep the bubble pinned over whoever is speaking. */
+  placeSpeech(worldPos, camera) {
+    const el = $('speech');
+    if (el.classList.contains('hidden')) return;
+    const v = _proj.copy(worldPos).project(camera);
+    if (v.z > 1) { el.style.opacity = '0'; return; }
+    el.style.opacity = '1';
     el.style.left = `${(v.x * 0.5 + 0.5) * 100}%`;
     el.style.top  = `${(-v.y * 0.5 + 0.5) * 100}%`;
-    el.style.display = '';
   }
 
   toast(msg, ms = 2600) {

@@ -143,6 +143,38 @@ class Builder {
     return m;
   }
 
+  /**
+   * A pile of boxes drawn in a single call. Solid ones still get their own
+   * collision box, and because the visual is one InstancedMesh each block can
+   * still be knocked out individually at the end — a castle this way costs one
+   * draw call instead of seventy.
+   *
+   * Note `y` here is the block's CENTRE, unlike plat().
+   */
+  bricks(color, list) {
+    const mesh = new THREE.InstancedMesh(BOX, this.mat(color), list.length);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const m4 = new THREE.Matrix4(), p = new THREE.Vector3();
+    const q = new THREE.Quaternion(), sc = new THREE.Vector3();
+    list.forEach((bk, i) => {
+      p.set(bk.x, bk.y, bk.z);
+      sc.set(bk.w, bk.h, bk.d);
+      mesh.setMatrixAt(i, m4.compose(p, q, sc));
+      if (bk.solid) {
+        this.solids.push({
+          min: new THREE.Vector3(bk.x - bk.w / 2, bk.y - bk.h / 2, bk.z - bk.d / 2),
+          max: new THREE.Vector3(bk.x + bk.w / 2, bk.y + bk.h / 2, bk.z + bk.d / 2),
+          bounce: 0,
+        });
+      }
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.group.add(mesh);
+    return mesh;
+  }
+
   /** Many copies of one shape in one draw call — for trees, rocks, grass. */
   instanced(geo, mat, transforms) {
     const mesh = new THREE.InstancedMesh(geo, mat, transforms.length);
@@ -217,6 +249,100 @@ function mushroom(b, x, y, z, { cap = 0xd4574e, stem = 0xf0e4cf, r = 2.1, bounce
   s.mesh.visible = false;
   if (aim) s.aim = new THREE.Vector3(aim[0], aim[1], aim[2]);
   return s;
+}
+
+/**
+ * A castle out of a few dozen blocks. Walls are solid so you can climb the
+ * ramparts; the trimmings are decoration. Either way every single block is its
+ * own mesh, so at the end she can take the whole thing apart.
+ */
+function castle(b, cx, gy, cz, { s = 3, half = 2, stone = 0x9c9689, roof = 0x8a4a44 } = {}) {
+  const wall = [];   // all one instanced batch at the end
+  const brick = (x, y, z, solid, w = s, h = s, d = s) =>
+    wall.push({ x, y: y + h / 2, z, w: w * 0.98, h: h * 0.98, d: d * 0.98, solid });
+
+  const R = half * s;                       // half-width of the courtyard
+  const gateAt = -R;                        // gate in the near wall
+
+  // --- curtain walls, two courses high
+  for (let level = 0; level < 2; level++) {
+    const y = gy + level * s;
+    for (let i = -half; i <= half; i++) {
+      const o = i * s;
+      // near wall, with a gap for the gate
+      if (!(i === 0 && level === 0)) brick(cx + o, y, cz + gateAt, true);
+      brick(cx + o, y, cz + R, true);        // far wall
+      if (Math.abs(i) !== half) {            // side walls (corners are towers)
+        brick(cx - R, y, cz + o, true);
+        brick(cx + R, y, cz + o, true);
+      }
+    }
+  }
+  // lintel over the gate
+  brick(cx, gy + s, cz + gateAt, true);
+
+  // --- battlements: alternating merlons around the top, decorative
+  const top = gy + 2 * s;
+  for (let i = -half; i <= half; i++) {
+    if (i % 2) continue;
+    const o = i * s;
+    for (const [px, pz] of [[cx + o, cz + gateAt], [cx + o, cz + R], [cx - R, cz + o], [cx + R, cz + o]]) {
+      brick(px, top + s * 0.3, pz, false, s * 0.6, s * 0.6, s * 0.6);
+    }
+  }
+
+  // --- corner towers, a course taller, with a cap
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const tx = cx + sx * R, tz = cz + sz * R;
+    for (let level = 0; level < 3; level++) brick(tx, gy + level * s, tz, true, s * 1.25, s, s * 1.25);
+    b.deco(new THREE.ConeGeometry(s * 0.95, s * 1.15, 6), b.mat(roof), tx, gy + 3 * s + s * 0.55, tz);
+    b.deco(new THREE.SphereGeometry(s * 0.13, 6, 5), b.mat(0xf0d97a), tx, gy + 3 * s + s * 1.2, tz);
+  }
+
+  // --- keep in the middle, so there's something to stand on
+  const kx = cx, kz = cz;
+  for (let level = 0; level < 3; level++) brick(kx, gy + level * s, kz, true, s * 1.6, s, s * 1.6);
+  b.deco(new THREE.ConeGeometry(s * 1.25, s * 1.5, 6), b.mat(roof), kx, gy + 3 * s + s * 0.7, kz);
+
+  b.bricks(stone, wall);   // the whole castle, one draw call
+  b.blocker(cx, gy + s * 1.5, cz, (half * 2 + 2) * s, s * 3, (half * 2 + 2) * s);
+}
+
+/** A little house for a giraffe — tall door, because giraffe. */
+function hut(b, x, y, z, { wall = 0xe8dcc4, roof = 0xa8503f, face = 0, w = 5, d = 5, h = 4.2 } = {}) {
+  b.plat(x, y + h, z, w, d, wall, { thickness: h });
+  const r = b.deco(new THREE.ConeGeometry(w * 0.86, h * 0.8, 4), b.mat(roof), x, y + h + h * 0.4, z, Math.PI / 4 + face);
+  r.receiveShadow = true;
+  const fz = Math.cos(face), fx = Math.sin(face);
+  b.deco(new THREE.BoxGeometry(1.1, 2.6, 0.2), b.mat(0x5f4632), x + fx * (d / 2 + 0.05), y + 1.3, z + fz * (d / 2 + 0.05), face);
+  b.deco(new THREE.BoxGeometry(1.0, 1.0, 0.2), b.mat(0x93c8e0), x - fz * (w / 2 + 0.05), y + 2.6, z + fx * (w / 2 + 0.05), face + Math.PI / 2);
+}
+
+/** Parked in the clouds. Nobody knows whose it is. */
+function spaceship(b, x, y, z) {
+  const HULL = 0xb9c2d6, TRIM = 0x6f7d99, GLASS = 0x8fe3ff;
+  const hull = b.deco(new THREE.SphereGeometry(4.4, 16, 10), b.mat(HULL), x, y, z);
+  hull.scale.set(1, 0.28, 1);
+  const rim = b.deco(new THREE.TorusGeometry(4.3, 0.5, 8, 20), b.mat(TRIM), x, y, z);
+  rim.rotation.x = Math.PI / 2;
+  const dome = b.deco(new THREE.SphereGeometry(2.0, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+    b.mat(GLASS, { transparent: true, opacity: 0.55 }), x, y + 0.7, z);
+  dome.castShadow = false;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    b.deco(new THREE.SphereGeometry(0.36, 6, 5), b.mat(0xffd166),
+      x + Math.cos(a) * 3.5, y - 0.5, z + Math.sin(a) * 3.5);
+  }
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.4;
+    const lx = x + Math.cos(a) * 2.6, lz = z + Math.sin(a) * 2.6;
+    const leg = b.deco(new THREE.CylinderGeometry(0.22, 0.22, 2.6, 6), b.mat(TRIM), lx, y - 1.5, lz);
+    leg.rotation.x = Math.sin(a) * 0.22; leg.rotation.z = -Math.cos(a) * 0.22;
+    b.deco(new THREE.SphereGeometry(0.5, 8, 6), b.mat(TRIM), lx, y - 2.7, lz);
+  }
+  // you can land on it
+  b.plat(x, y + 1.15, z, 5.4, 5.4, HULL, { thickness: 0.5, castShadow: false }).mesh.visible = false;
+  b.blocker(x, y, z, 9, 4, 9);
 }
 
 /** A big cactus in sunglasses, because the desert should have some attitude. */
@@ -327,8 +453,16 @@ export function buildWorld(scene) {
     b.instanced(new THREE.BoxGeometry(0.22, 1, 0.22), b.mat(0xe4dccb), posts);
   }
 
+  // A castle right by the start, so there's something to head towards before
+  // the first lantern is even found. Every block of it can be knocked out later.
+  castle(b, 16, 0, -6, { s: 3, half: 2 });
+
+  // homes for the neighbours
+  hut(b, 12, 0, 20, { face: Math.PI, roof: 0x4f7ba8 });
+  hut(b, -19, 0, 46, { face: -0.5, roof: 0x7a9e4f, w: 4.4, d: 4.4, h: 3.8 });
+
   trees(b, [
-    { x: 14, y: 0, z: 8, h: 7 }, { x: 18, y: 0, z: 26, h: 6 },
+    { x: 18, y: 0, z: 26, h: 6 },
     { x: -17, y: 0, z: 40, h: 8 }, { x: 9, y: 0, z: 45, h: 5.5 },
     { x: -6, y: 0, z: 48, h: 6.5 }, { x: 20, y: 0, z: 44, h: 7 },
   ]);
@@ -405,6 +539,8 @@ export function buildWorld(scene) {
   tufts(b, Array.from({ length: 34 }, () => ({ x: rr(-21, 21), y: 6.4, z: rr(132, 174) })), 0x3f6b3a);
   rocks(b, Array.from({ length: 10 }, () => ({ x: rr(-20, 20), y: 6.8, z: rr(134, 172), s: rr(0.6, 1.6) })), 0x6d6a5e);
 
+  hut(b, -19, 6.4, 148, { face: Math.PI * 0.5, wall: 0xd9cbb0, roof: 0x5a4030, w: 4.6, d: 4.6, h: 4 });
+
   // memory 7 — tucked behind the treeline, off the obvious path
   b.plat(-16, 7.6, 142, 6, 6, 0x54764a);
   mem(-16, 9.0, 142);
@@ -464,11 +600,15 @@ export function buildWorld(scene) {
   // The dry inland side of the sand. One big cactus in sunglasses, standing
   // where she comes over the ridge, and a couple of smaller ones behind it.
   cactus(b, -15, 1.6, 214, { s: 1.25, face: 0.18 });
-  cactus(b, 12, 1.6, 210, { s: 0.8, face: -0.5 });
+  cactus(b, 15, 1.6, 209, { s: 0.8, face: -0.5 });
+  hut(b, 6, 1.6, 219, { face: Math.PI, wall: 0xf0e0bc, roof: 0xc47f52, w: 4.6, d: 4.6, h: 3.9 });
   cactus(b, -22, 1.6, 232, { s: 0.62, face: 0.9 });
   trees(b, [
     { x: -22, y: 1.6, z: 216, h: 7 }, { x: 23, y: 1.6, z: 222, h: 6.5 }, { x: -24, y: 1.6, z: 246, h: 7.5 },
   ], { trunk: 0x8a6a4a, leaf: 0x5f8f52, leaf2: 0x527f47 });
+
+  // a smaller one down on the sand
+  castle(b, 12, 1.6, 236, { s: 2.4, half: 1, stone: 0xdcc79a, roof: 0xb0764a });
 
   // memory 11 — end of the pier
   for (let i = 0; i < 8; i++) {
@@ -548,6 +688,8 @@ export function buildWorld(scene) {
   cloudify(-1, 43.8, 333, 9);
   mem(-1, 45.2, 333);
   cp(-1, 43.8, 333);
+
+  spaceship(b, 13, 40, 318);
 
   // memory 16 — the top of everything
   b.plat(-1, 46.6, 342, 7, 7, CLOUD, { thickness: 1.4 });
