@@ -559,12 +559,18 @@ export function buildWorld(scene) {
 
   // memory 9 — a spiral of branches around the big tree, evenly spaced so each
   // step is a single jump
-  b.deco(new THREE.CylinderGeometry(2.2, 3.2, 26, 10), b.mat(0x503a28), -6, 19, 166);
-  b.blocker(-6, 19, 166, 5.4, 26, 5.4);
-  // crown, so the trunk doesn't just stop in mid-air above the canopy platform
-  b.deco(new THREE.IcosahedronGeometry(6.4, 0), b.mat(0x2c5233), -6, 33.5, 166, 0.6);
-  b.deco(new THREE.IcosahedronGeometry(4.6, 0), b.mat(0x36613c), -10.5, 31.5, 168.5, 1.2);
-  b.deco(new THREE.IcosahedronGeometry(4.2, 0), b.mat(0x36613c), -1.5, 31.8, 163.5, 2.1);
+  b.deco(new THREE.CylinderGeometry(2.2, 3.2, 34, 10), b.mat(0x503a28), -6, 23, 166);
+  b.blocker(-6, 23, 166, 5.4, 34, 5.4);
+  // Crown, so the trunk doesn't just stop in mid-air above the canopy platform.
+  //
+  // Held well clear of the branch below it. These are `deco`, so they aren't
+  // camera occluders and nothing pulls the view in when it meets one — the
+  // camera simply ends up inside the leaves and the screen goes green. The
+  // chase sits about 5.8 above her feet, and the top branch is at 25.8, so
+  // every underside here stays above 33 to leave the climb an open sky.
+  b.deco(new THREE.IcosahedronGeometry(5.6, 0), b.mat(0x2c5233), -6, 39.5, 166, 0.6);
+  b.deco(new THREE.IcosahedronGeometry(3.8, 0), b.mat(0x36613c), -10.5, 37.5, 168.5, 1.2);
+  b.deco(new THREE.IcosahedronGeometry(3.6, 0), b.mat(0x36613c), -1.5, 37.6, 163.5, 2.1);
   // wide branches — the climb should be about looking around, not about landing
   // on a dinner plate four times in a row
   const spiral = [

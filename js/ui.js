@@ -21,8 +21,6 @@ export class UI {
     this._gateTries = 0;
     this._toastTimer = null;
 
-    $('found-total').textContent = data.count;
-
     // --- gate ---
     $('gate-welcome').textContent  = data.gate.welcome || '';
     $('gate-question').textContent = data.gate.question || '';
@@ -36,6 +34,7 @@ export class UI {
     $('title-body').textContent = data.intro.body || '';
     $('title-go').textContent   = data.intro.button || 'Go';
     $('title-go').addEventListener('click', () => {
+      this._playing = true;    // Escape opens the pause menu from here on
       this.hide('title');
       this.hooks.onStart?.();
     });
@@ -47,15 +46,39 @@ export class UI {
     });
 
     // --- sound ---
-    $('hud-sound').addEventListener('click', () => {
-      const on = this.hooks.onSoundToggle?.();
-      $('hud-sound').classList.toggle('off', !on);
+    const toggleSound = () => this._setSoundLabel(this.hooks.onSoundToggle?.());
+    $('hud-sound').addEventListener('click', toggleSound);
+    $('menu-sound').addEventListener('click', toggleSound);
+
+    // --- pause menu ---
+    $('hud-menu').addEventListener('click', () => this.showMenu());
+    $('menu-resume').addEventListener('click', () => this.hide('menu'));
+    $('menu-restart').addEventListener('click', () => {
+      $('menu-confirm').classList.remove('hidden');
     });
+    $('menu-restart-no').addEventListener('click', () => {
+      $('menu-confirm').classList.add('hidden');
+    });
+    $('menu-restart-yes').addEventListener('click', () => this.hooks.onReset?.());
 
     addEventListener('keydown', (e) => {
-      const k = e.key.toLowerCase();
-      if (k === 'escape' && this.open) this.hide(this.open);
+      if (e.key.toLowerCase() !== 'escape') return;
+      if (this.open === 'menu') { this.hide('menu'); return; }
+      // Escape closes the menu, but must not dismiss the gate, the title card or
+      // the ending — those are screens to answer, not skip past.
+      if (this.open) return;
+      if (this._playing) this.showMenu();
     });
+  }
+
+  _setSoundLabel(on) {
+    $('hud-sound').classList.toggle('off', !on);
+    $('menu-sound').textContent = on ? 'Sound: on' : 'Sound: off';
+  }
+
+  showMenu() {
+    $('menu-confirm').classList.add('hidden');   // never open pre-armed
+    this.show('menu');
   }
 
   /** True while a screen is up — the game loop pauses input while it is. */
@@ -133,15 +156,15 @@ export class UI {
 
   // ------------------------------------------------------------- hud bits
 
-  setCount(n) {
-    $('found-count').textContent = n;
-    const btn = $('hud-journal');
-    btn.classList.remove('pulse');
-    void btn.offsetWidth;
-    btn.classList.add('pulse');
+  /** What she's doing right now. Empty text hides the panel entirely. */
+  setObjective(text) {
+    const el = $('hud-objective');
+    if (!text) { el.classList.add('hidden'); return; }
+    if ($('objective-text').textContent === text) return;   // don't replay the fade
+    $('objective-text').textContent = text;
+    el.classList.remove('hidden');
+    el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
   }
-
-  setSparks(n) { $('spark-count').textContent = n; }
 
   /** Names the track for a few seconds whenever a new one starts. */
   nowPlaying(title) {
@@ -234,10 +257,13 @@ export class UI {
 
   // ------------------------------------------------------------- talking
 
-  showTalkPrompt(touch) {
+  /** `text` overrides the usual wording — the stars aren't a conversation. */
+  showTalkPrompt(touch, text) {
     const p = $('talk-prompt');
-    if (p.classList.contains('hidden')) {
-      p.textContent = touch ? (this.data.npcPromptTouch || 'Tap TALK') : (this.data.npcPrompt || 'Press E to talk');
+    const want = text
+      || (touch ? (this.data.npcPromptTouch || 'Tap TALK') : (this.data.npcPrompt || 'Press E to talk'));
+    if (p.classList.contains('hidden') || p.textContent !== want) {
+      p.textContent = want;
       p.classList.remove('hidden');
     }
     if (touch) $('talk-btn').classList.remove('hidden');

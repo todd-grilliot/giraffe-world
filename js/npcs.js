@@ -25,9 +25,8 @@ export class NPCs {
       const home = new THREE.Vector3(spec.at[0], spec.at[1], spec.at[2]);
       const n = {
         name: spec.name,
-        stages: spec.stages || [],
-        line: 0,
-        stageKey: null,
+        spec,                        // their whole entry, for whatever they say
+        cursor: { key: null, i: 0 }, // which line of which script they're on
         rig,
         home,
         pos: home.clone(),
@@ -105,33 +104,22 @@ export class NPCs {
     return best;
   }
 
-  /** Which set of lines applies at this many collected. */
-  _stageFor(n, collected) {
-    let pick = null;
-    for (const st of n.stages) {
-      if (collected >= (st.from ?? 0) && (!pick || (st.from ?? 0) >= (pick.from ?? 0))) pick = st;
-    }
-    return pick;
-  }
-
-  /** The line they're currently on. Doesn't advance. */
-  current(n, collected) {
-    const st = this._stageFor(n, collected);
-    if (!st || !st.say?.length) return '';
-    // moving into a new stage restarts them on its first line
-    const key = String(st.from ?? 0);
-    if (n.stageKey !== key) { n.stageKey = key; n.line = 0; }
-    return st.say[n.line % st.say.length];
-  }
-
-  /** Move to their next line. */
-  advance(n, collected) {
-    const st = this._stageFor(n, collected);
-    if (!st || !st.say?.length) return '';
-    const key = String(st.from ?? 0);
-    if (n.stageKey !== key) { n.stageKey = key; n.line = 0; }
-    else n.line++;
-    return st.say[n.line % st.say.length];
+  /**
+   * The line they're on. `step` moves them along first — the first press of E
+   * shows what they're already saying, later presses advance, so re-opening a
+   * conversation never skips the line she just walked away from.
+   *
+   * What they say is entirely the quest system's call; this only keeps the
+   * cursor and hands back text. Returns '' when they've run out, which closes
+   * the bubble and lets the favour move on to its next state.
+   */
+  speak(n, quests, step, onCue) {
+    if (step) n.cursor.i++;
+    const said = quests.say(n.spec, n.cursor, onCue);
+    if (!said.text) { n.cursor.key = null; n.cursor.i = 0; return ''; }
+    n.cursor.key = said.key;
+    n.cursor.i = said.i;
+    return said.text;
   }
 
   update(dt, t, playerPos, flying, talkingTo) {

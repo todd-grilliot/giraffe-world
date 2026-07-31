@@ -12,20 +12,20 @@
   "count": 16,
 
   "gate": {
-    "question": "PLACEHOLDER - ask her something only she would know",
-    "answers": ["placeholder"],
-    "hint": "PLACEHOLDER - a gentle nudge if she gets it wrong twice",
+    "question": "You gave me an amulet of what?",
+    "answers": ["silliness", "silly"],
+    "hint": "It wasn't a serious amulet.",
     "welcome": "Hi Sarah."
   },
 
   "intro": {
     "title": "Giraffe World",
-    "body": "There are sixteen glowing things hidden out here.\n\nThe locals would rather you didn't. Follow the little light — it always knows where the next one is.",
+    "body": "The locals have been looking forward to this for ages.\n\nGo and meet them — they could each use a hand with something. Follow the little light if you get turned around.",
     "button": "Go"
   },
 
   "finale": {
-    "title": "You got all sixteen.",
-    "body": "That's the whole game, and you finished it.\n\nI made this for you. I hope it was fun.\n\nI love you lots.\n\n— Todd"
+    "title": "That's everyone looked after.",
+    "body": "You did the whole thing — every one of them, all the way up to the top.\n\nI had fun making this. I hope it made you smile.\n\nI love you lots.\n\n— Todd"
   }
 }

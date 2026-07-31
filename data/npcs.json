@@ -1,24 +1,37 @@
 {
   "_readme": [
-    "The other giraffes. Walk up to one and a prompt appears; press E (or tap TALK)",
-    "to hear them, and again for their next line.",
+    "The giraffes, and everything they say. This is the file to rewrite.",
     "",
-    "Each has `stages`: what they say depending on how many of the glowing things",
-    "she's collected. The stage with the highest `from` she's reached is the one",
-    "they use, so they get more and more excited as she goes.",
+    "Walk up to one and a prompt appears; press E (or tap TALK) for their next",
+    "line, and again for the one after.",
     "",
-    "They're fond of her and they're glad she came. Keep that if you rewrite them.",
+    "Five of them ask for a favour, one per zone, and a zone won't let you past",
+    "until its favour is done — so nothing can be missed and come back to bite",
+    "you at the end. The other four are just people who live here.",
     "",
-    "`at` is where they stand: [x, y, z]. `outfit` is a list from OUTFITS in",
-    "js/giraffe.js: topHat, partyHat, beanie, sunHat, flowerCrown, glasses, shades,",
-    "scarf, bowTie, sweater, cape, backpack. `loop` is how wide a circle they",
-    "wander in — trimmed automatically if it would walk them into a wall.",
+    "QUEST SHAPES",
+    "  fetch    — go and get `item`, bring it back to whoever asked",
+    "  deliver  — carry `item` from the giver to the giraffe named in `to`",
+    "  talk     — no object; the conversation is the whole thing",
     "",
-    "Nobody agrees on what the glowing things are called. That's on purpose."
+    "WHAT EACH LIST IS FOR",
+    "  offer    — first time you talk to them, and how the favour is asked for",
+    "  nudge    — talking to them again while you're still doing it",
+    "  done     — the hand-in (on `deliver` this belongs to the receiver)",
+    "  receive  — a `deliver` target's lines when you hand the thing over",
+    "  idle     — anything after their favour is finished, cycling",
+    "  lines    — for giraffes with no favour at all; cycles forever",
+    "",
+    "`at` is where they stand: [x, y, z]. `outfit` is from OUTFITS in",
+    "js/giraffe.js: topHat, partyHat, beanie, sunHat, flowerCrown, glasses,",
+    "shades, scarf, bowTie, sweater, cape, backpack. `loop` is how wide a circle",
+    "they wander in — trimmed automatically if it would walk them into a wall."
   ],
 
   "prompt": "Press E to talk",
   "promptTouch": "Tap TALK",
+
+  "gateNudge": "{name} is still waiting on something back that way.",
 
   "people": [
     {
@@ -26,225 +39,222 @@
       "at": [7, 0, 14],
       "outfit": ["sunHat", "scarf"],
       "loop": 5,
-      "stages": [
-        { "from": 0, "say": [
-          "Oh! You must be Sarah. We have all been so looking forward to this.",
-          "Todd made this whole world for you. Built it with Claude, apparently — I don’t know what that is, but he was very pleased with himself.",
-          "He moved that little house four times. Four! Said it wasn’t right yet.",
-          "There are glowy ball things dotted about, if you fancy it. Take your time. You’re very welcome here."
-        ]},
-        { "from": 4, "say": [
-          "You’ve been finding the glowy ball things! Good for you.",
-          "They say something rather nice happens if somebody gets all sixteen. Nobody’s ever managed it.",
-          "I’m not saying it should be you. I’m just saying it would be lovely if it were."
-        ]},
-        { "from": 9, "say": [
-          "Nine! You’re past halfway, and you’ve barely been here an afternoon.",
-          "Marlow’s been telling everyone. He’s insufferable about it. He’s so proud.",
-          "Keep going, love. We’re all rooting for you."
-        ]},
-        { "from": 14, "say": [
-          "Fourteen. Fourteen! I’ve had to sit down.",
-          "Whatever happens when you get them all — and something will — I want you to know we’re glad it’s you.",
-          "Go on. Finish it."
-        ]}
+      "zone": "meadow",
+      "quest": {
+        "id": "blanket",
+        "kind": "fetch",
+        "task": "Get Juniper's blanket down off the roof",
+        "item": { "label": "picnic blanket", "model": "blanket", "at": [-12.5, 4.9, 20], "colour": "0xd8556a" },
+        "offer": [
+          "Oh — you're here. You're actually here. I've swept.",
+          "Sorry. I practised that and it came out odd.",
+          "Small favour, while you're on your feet: my picnic blanket's gone up onto the roof. There was a wind. It was a whole thing.",
+          "Marlow says I should just get a new blanket. Marlow has opinions about blankets now, apparently."
+        ],
+        "nudge": [
+          "It's the red one, up on the house. You can't miss it, it's being very smug about the view."
+        ],
+        "done": [
+          "You got it! Look at it. Barely any moss on it at all.",
+          "Sit with me a minute? You've come a long way and the tea's still warm."
+        ]
+      },
+      "idle": [
+        "Todd built this whole place for you, you know. With Claude — I don't know what that is, but he was very pleased with himself.",
+        "He moved that little house four times. Four! Said it wasn't right yet.",
+        "Go and find Marlow if you'd like to be cheered at. He's very good at it. It's mostly what he does."
       ]
     },
+
     {
       "name": "Marlow",
       "at": [-17, 0, 38],
       "outfit": ["beanie", "backpack"],
       "loop": 7,
-      "stages": [
-        { "from": 0, "say": [
-          "Morning! Lovely day. They’re all lovely here, but this one especially — you turned up.",
-          "You’ll see the shinies about. Little floating ones. Very pretty, quite hard to reach.",
-          "There’s an old story that whoever collects all sixteen sets everything right. Makes the world better somehow.",
-          "Bit vague, as stories go. But a nice one to have around."
-        ]},
-        { "from": 4, "say": [
-          "How many shinies have you got now? Don’t be modest.",
-          "That’s brilliant. Genuinely. Nobody gets past two or three usually.",
-          "I’ll tell Pip. Pip’s been waiting by the creek all week in a hat."
-        ]},
-        { "from": 9, "say": [
-          "I looked the old story up properly. It’s better than I remembered.",
-          "‘And one shall gather the sixteen, and the world shall be kinder for it.’ That’s the line.",
-          "Kinder! Isn’t that nice? I do hope it’s you. I think it’s you."
-        ]},
-        { "from": 14, "say": [
-          "Fourteen. I’m telling everyone. I’ve already told everyone.",
-          "Whatever you become at the end of this, could you remember I was encouraging early?",
-          "Very early. From the meadow. That was me."
-        ]}
+      "zone": "meadow",
+      "lines": [
+        "Morning! Lovely day. They're all lovely here, but this one especially — you turned up.",
+        "Pip's been wearing a party hat for three days in case he missed you. Three days. I admire the commitment and I worry about the neck.",
+        "Bertrand's laid out a buffet up on the cliff. Nobody asked him to. Nobody has ever asked him to.",
+        "I moved out here to be nearer my sister, actually. Packed up the whole life. Best thing I ever did, and I'd do it again tomorrow.",
+        "Anyway — don't let me keep you. Actually do, a bit. It's nice."
       ]
     },
+
+    {
+      "name": "Wendell",
+      "at": [-22, 0, 70],
+      "outfit": ["glasses"],
+      "loop": 3,
+      "zone": "creek",
+      "lines": [
+        "Can I ask you something?",
+        "What if his name was Jeremy Seinfeld?",
+        "No, that's it. That's the whole thought.",
+        "I've been out here a while."
+      ]
+    },
+
     {
       "name": "Pip",
       "at": [-7, 1.6, 88],
       "outfit": ["partyHat"],
       "loop": 4,
-      "stages": [
-        { "from": 0, "say": [
-          "I’ve had this hat on for three days in case you turned up. Absolutely worth it.",
-          "Orbs? Are they orbs? Nobody will tell me what they’re actually called.",
-          "Bertrand has a name for them that’s eleven syllables long. I refuse to say it."
-        ]},
-        { "from": 4, "say": [
-          "You’re glowing a bit! In a nice way! Like you’ve been somewhere warm.",
-          "That’s the orbs, that is. They like you.",
-          "Get all of them! I want to see what happens! Everyone does!"
-        ]},
-        { "from": 9, "say": [
-          "NINE. Sorry. Nine. I got excited.",
-          "Clementine cried in the woods when she heard. Happy crying. Mostly happy.",
-          "You’re going to do it, aren’t you. You’re actually going to do it."
-        ]},
-        { "from": 14, "say": [
-          "Two left! TWO! I’ve put the hat back on!",
-          "If you become something magnificent at the end, will you still come by the creek?",
-          "…Okay. Okay good. That’s all I wanted."
-        ]}
+      "zone": "creek",
+      "quest": {
+        "id": "invitation",
+        "kind": "deliver",
+        "to": "Clementine",
+        "task": "Take Pip's invitation up to Clementine in the woods",
+        "item": { "label": "party invitation", "model": "envelope", "colour": "0xf6e3a1" },
+        "offer": [
+          "HI. Hello. Hi. I've had this hat on for three days in case you turned up.",
+          "Worth it. No regrets. Slight neck thing.",
+          "Okay okay okay — I'm throwing a party, and I need somebody to run an invitation up to Clementine in the woods.",
+          "I'd go myself, but if I leave the creek I might miss you arriving. Which you've now done. But still."
+        ],
+        "nudge": [
+          "Clementine! Up in the woods! She's the one with all the cats round her!"
+        ]
+      },
+      "idle": [
+        "SHE SAID YES? She said yes. I need to sit down. I need to stand up. I need to do both.",
+        "There's going to be bunting. I haven't made the bunting yet. There's going to be bunting.",
+        "You'll come, won't you? You don't have to say yes. You've said yes. I heard it."
       ]
     },
+
     {
       "name": "Clementine",
       "at": [-15, 6.4, 138],
       "outfit": ["flowerCrown", "sweater"],
       "loop": 6,
-      "stages": [
-        { "from": 0, "say": [
-          "Mind your step in the trees, it goes dim. Beautiful though, isn’t it.",
-          "We call them the Lanterns here. Capital L. It felt respectful.",
-          "The old ones said sixteen was a number worth finishing. They never said why. They just smiled about it."
-        ]},
-        { "from": 5, "say": [
-          "You’re warmer than you were. I felt you coming before I saw you.",
-          "The Lanterns weren’t dropped, you know. Somebody put them out there. On purpose. For somebody.",
-          "I’ve always wondered who they were waiting for."
-        ]},
-        { "from": 10, "say": [
-          "The moss is leaning towards you. Look at it. It’s never done that.",
-          "I think this wood has been waiting a very long time for somebody like you.",
-          "Don’t stop. Please don’t stop."
-        ]},
-        { "from": 14, "say": [
-          "You’re nearly there and I can hardly stand it.",
-          "I made you a flower crown. It’s at my house. I’ll give it to you after.",
-          "Go on. Go and be whatever the story says you’ll be."
-        ]}
+      "zone": "woods",
+      "receive": [
+        "Oh — a party! From Pip? He throws one every year. It's always lovely and there's never any food.",
+        "Tell him yes. Tell him I'll bring something with food in it."
+      ],
+      "quest": {
+        "id": "cat",
+        "kind": "fetch",
+        "task": "Get Clementine's cat down from the tall tree",
+        "item": { "label": "very smug cat", "model": "cat", "at": [2.3, 28.0, 174], "colour": "0xdfe4ea" },
+        "offer": [
+          "While you're up here — could you do me a kindness? One of the cats has gone up the big tree again.",
+          "They're not mine. Technically. I just feed them. Every day. And named them all. And worry about them constantly.",
+          "It's the grey one. She knows exactly what she's doing."
+        ],
+        "nudge": [
+          "Top of the tallest tree. She's fine. She's smug. She's fine and she's smug."
+        ],
+        "done": [
+          "Oh, come here, you daft animal. Look at her — not even slightly sorry.",
+          "Thank you. Really. You've got a way with difficult creatures. That'll serve you well round here."
+        ]
+      },
+      "idle": [
+        "Mind your step in the trees, it goes dim. Beautiful though, isn't it.",
+        "That's her third tree this month. I've stopped counting out loud, it upsets me.",
+        "If you're heading for the coast, Bertrand's up on the cliff. Be kind. He's been practising."
       ]
     },
+
     {
       "name": "Bertrand",
       "at": [14, 25.4, 189],
       "outfit": ["topHat", "bowTie"],
       "loop": 5,
-      "stages": [
-        { "from": 0, "say": [
+      "zone": "coast",
+      "quest": {
+        "id": "fig",
+        "kind": "fetch",
+        "task": "Find Bertrand's fig down on the shore",
+        "item": { "label": "fig of consequence", "model": "fig", "at": [-9, 1.6, 232], "colour": "0x7b4b8f" },
+        "offer": [
           "Ah. The sister. Genuinely delighted, and I do not say that lightly.",
-          "They are properly called the Spheres of Considerable Significance. I have said so for years.",
-          "Pip calls them ‘orbs’. Pip also eats bark. I rest my case."
-        ]},
-        { "from": 6, "say": [
-          "You carry several of the Spheres already. It suits you. It really rather does.",
-          "The old text is quite clear: sixteen, and the branches bow. I maintain these branches.",
-          "I should be delighted to bow. I’ve practised."
-        ]},
-        { "from": 11, "say": [
-          "Eleven. I have been composed about this for some time and I would like that noted.",
-          "You are eleven-sixteenths of something wonderful and you’re being terribly casual.",
-          "The view from up here is the finest in the world. He built it that way for you deliberately."
-        ]},
-        { "from": 14, "say": [
-          "Two remain. I have laid out a small buffet. It may be premature.",
-          "When it’s done — and it will be done — I should like to serve in whatever comes after.",
-          "Something in parks. I’m very good with branches."
-        ]}
+          "I have laid out a buffet. It is, if I say so myself, magnificent. It is also missing precisely one thing.",
+          "A single ripe fig. There is a tree down on the shore. I would fetch it myself, but I am — as you can see — presiding."
+        ],
+        "nudge": [
+          "The fig tree. Down on the shore. I shall be here. Presiding."
+        ],
+        "done": [
+          "Ah! There. Look at it. That is a fig of consequence.",
+          "You may consider yourself the guest of honour. You are also the only guest. That is not the point and I'd thank you not to raise it."
+        ]
+      },
+      "idle": [
+        "The view from up here is the finest in the world. He built it that way on purpose, I'm told.",
+        "Odie sleeps through most of this. I've stopped taking it personally. Largely.",
+        "Do go up to Sage when you're ready. She's been waiting longer than any of us."
       ]
     },
+
     {
       "name": "Odie",
       "at": [-16, 1.6, 226],
       "outfit": ["shades", "cape"],
       "loop": 8,
-      "stages": [
-        { "from": 0, "say": [
-          "Hey. Cool cactus, right? I like to think we match.",
-          "Those floaty bois out there? There’s a whole thing about them. Sixteen and the world gets better, supposedly.",
-          "I don’t usually go in for destiny. For you I’ll make an exception."
-        ]},
-        { "from": 6, "say": [
-          "Okay, you’ve got a proper glow on now. That’s not a look, that’s an achievement.",
-          "Six floaty bois. Ten to go. Not that I’m counting. I am completely counting.",
-          "Whole beach is talking about you. In a good way. Mostly Odie, and Odie is me."
-        ]},
-        { "from": 11, "say": [
-          "Eleven. Eleven! I had to sit on a rock about it.",
-          "You know the best part? Nobody asked you to do this. You just started, and you kept going.",
-          "That’s the most giraffe thing I’ve ever heard and you’re not even from here."
-        ]},
-        { "from": 14, "say": [
-          "You’re two away and the sky’s already looking at you funny.",
-          "Go get them. Seriously. I’ll hold the cactus.",
-          "…I can’t hold the cactus. It’s a cactus. I’ll be here."
-        ]}
+      "zone": "coast",
+      "lines": [
+        "Hey. Oh — hey. Sorry, I was doing a nap. I do a lot of naps.",
+        "Cool cactus, right? I like to think the two of us match.",
+        "I'm saving up for a bit of land. Just a patch. Down past the rocks where it's quiet.",
+        "Nothing fancy. Some grass. Room for a few things to grow. I think about it a lot.",
+        "...Did I already say the land thing? I say the land thing a lot. It's fine. It's a good thing to say."
       ]
     },
+
     {
       "name": "Winnifred",
       "at": [16, 23.0, 261],
       "outfit": ["glasses", "scarf"],
       "loop": 5,
-      "stages": [
-        { "from": 0, "say": [
-          "You made it all the way up here! Not everyone does. Sit a moment, the clouds are soft.",
-          "We just call them the Sixteen. Naming them felt like putting on airs.",
-          "Whoever finishes them doesn’t stay quite the same, they say. Becomes something better."
-        ]},
-        { "from": 7, "say": [
-          "Seven, and still climbing. You’ve got a stubbornness about you. I like it enormously.",
-          "The Sixteen were scattered up cliffs and over water on purpose. Somebody wanted it to be earned.",
-          "Not too hard, mind. Just hard enough to mean something."
-        ]},
-        { "from": 12, "say": [
-          "Twelve. You’ve done in an afternoon what nobody’s managed in generations.",
-          "I don’t think you’re special because of the Sixteen. I think the Sixteen waited for somebody like you.",
-          "Four to go and every one of them is above me. Off you go."
-        ]},
-        { "from": 15, "say": [
-          "One left. At the very top. You know exactly where it is.",
-          "We’ll all be watching. Not nervously — the other way.",
-          "Go on, love. We’ve been waiting a long time for a day this good."
-        ]}
+      "zone": "sky",
+      "lines": [
+        "You made it all the way up here! Not everyone does. Sit a moment, the clouds are soft.",
+        "Have we met? We have, haven't we. I'm so sorry. I'm delighted either way.",
+        "You made it all the way up here! Not everyone does.",
+        "...I've said that. I can hear that I've said that.",
+        "Well. It was true both times."
       ]
     },
+
     {
       "name": "Sage",
       "at": [-1, 43.8, 332],
       "outfit": ["cape", "flowerCrown"],
       "loop": 4,
-      "stages": [
-        { "from": 0, "say": [
-          "You’re a long way up. Nobody comes this high without a reason.",
-          "I’ve stood here a long time. I know what you’re looking for, and I’m glad it’s you looking.",
-          "I won’t slow you down. That was never my part in it."
-        ]},
-        { "from": 8, "say": [
-          "So it is you. After all this waiting it’s somebody’s sister, come to visit.",
-          "Eight. Halfway. Everyone below is talking about you and every word of it is kind.",
-          "That doesn’t happen often. I’d hold onto it."
-        ]},
-        { "from": 13, "say": [
-          "The sky’s gone lovely since you started climbing. Did you notice?",
-          "The story never said the sixteen would make somebody powerful. It said they’d make somebody kind, and the rest would follow.",
-          "Nobody ever reads to the end of things. That’s the best bit."
-        ]},
-        { "from": 15, "say": [
-          "One left, and it’s just up there, and it always was.",
-          "Whatever you turn into — we already liked you. That part’s finished. That part was easy.",
-          "Go on. Go and see what he made for you."
-        ]}
+      "zone": "sky",
+      "quest": {
+        "id": "song",
+        "kind": "talk",
+        "task": "Go all the way up and find Sage",
+        "cue": "song",
+        "cueAt": 3,
+        "offer": [
+          "You're a long way up. Nobody comes this high without a reason.",
+          "I've been writing a song about this place. Years, now.",
+          "Would you like to hear it? It isn't finished. I should say that first.",
+          "♪ It's a giraffe world ♪",
+          "...that's the line.",
+          "That's the whole thing. That's all I've got. I've had it ten years.",
+          "Everyone tells me it's my best work. I don't know how to feel about that."
+        ],
+        "stargaze": true,
+        "done": [
+          "Sit a minute. The stars come out properly up here.",
+          "Thank you for coming all this way. I've been looking forward to it more than I know how to say.",
+          "Before you go — look up. The long one there, with the tail. That's Luna.",
+          "She's been up there a good while now. Somebody put her where she'd be easy to find.",
+          "Go on. Go and say hello."
+        ],
+        "gaze": "Look up and find Luna"
+      },
+      "idle": [
+        "Everyone below is talking about you, and every word of it is kind.",
+        "That doesn't happen often. I'd hold onto it.",
+        "Go on. Go and see what he made for you."
       ]
     }
   ]

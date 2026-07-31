@@ -55,13 +55,13 @@
 
 <!-- ============ hud ============ -->
 <div id="hud" class="hidden">
-  <div id="hud-journal" class="hud-btn">
-    <span class="hud-count"><span id="found-count">0</span><span class="hud-slash">/</span><span id="found-total">16</span></span>
-    <span class="hud-label">collected</span>
+  <div id="hud-objective" class="hud-objective hidden">
+    <span class="hud-label">right now</span>
+    <span id="objective-text"></span>
   </div>
   <div class="hud-right">
-    <div id="spark-counter" class="hud-sparks"><span class="sparkdot"></span><span id="spark-count">0</span></div>
     <button id="hud-sound" class="icon-btn" title="Sound">♪</button>
+    <button id="hud-menu" class="icon-btn" title="Menu (Esc)">☰</button>
   </div>
   <div id="now-playing" class="now-playing"></div>
   <div id="toast" class="toast"></div>
@@ -82,6 +82,32 @@
 <div id="touch" class="hidden">
   <div id="stick" class="stick"><div id="stick-nub" class="stick-nub"></div></div>
   <button id="touch-jump" class="touch-jump">jump</button>
+</div>
+
+<!-- ============ menu ============ -->
+<div id="menu" class="screen hidden">
+  <div class="panel">
+    <h1 class="title-h menu-h">Paused</h1>
+    <div class="menu-actions">
+      <button id="menu-resume" class="btn btn-big">Resume</button>
+      <button id="menu-sound" class="btn btn-ghost">Sound: on</button>
+      <button id="menu-restart" class="btn btn-ghost">Start over</button>
+    </div>
+    <div id="menu-confirm" class="menu-confirm hidden">
+      <p>This clears everything and starts you back at the beginning.</p>
+      <div class="menu-actions">
+        <button id="menu-restart-yes" class="btn">Yes, start over</button>
+        <button id="menu-restart-no" class="btn btn-ghost">Never mind</button>
+      </div>
+    </div>
+    <p class="title-controls menu-controls">
+      <span><b>WASD</b> / arrows to move</span>
+      <span><b>Space</b> to jump</span>
+      <span><b>Drag</b> to turn the camera</span>
+      <span><b>E</b> to talk to the locals</span>
+      <span><b>Esc</b> for this menu</span>
+    </p>
+  </div>
 </div>
 
 <!-- ============ finale ============ -->

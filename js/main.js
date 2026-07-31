@@ -6,7 +6,8 @@ import { buildWorld, paletteAt } from './world.js';
 import { Player } from './player.js';
 import { ChaseCamera } from './camera.js';
 import { Input } from './input.js';
-import { Memories, Sparks, Companion } from './memories.js';
+import { Companion } from './guide.js';
+import { Quests } from './quests.js';
 import { UI } from './ui.js';
 import { Sound } from './audio.js';
 import { Music } from './music.js';
@@ -74,6 +75,8 @@ async function boot() {
   // stars, faded in as the world turns to night
   const stars = makeStars();
   scene.add(stars);
+  const luna = makeLuna();
+  scene.add(luna);
 
   // ------------------------------------------------------------ world
   const world     = buildWorld(scene);
@@ -81,24 +84,24 @@ async function boot() {
   const chase     = new ChaseCamera(camera, world);
   chase.yaw = Math.PI;   // the world unrolls toward +Z, so start looking that way
   const input     = new Input(canvas);
-  const memories  = new Memories(scene, world.memoryAnchors, data.count);
-  const sparks    = new Sparks(scene, world.sparkPoints);
   const companion = new Companion(scene);
   const sound     = new Sound();
   const music     = musicData ? new Music(musicData, (t) => ui.nowPlaying(t.title)) : null;
+  // Fetch the first track while she's still on the gate/title screen, so
+  // pressing Go doesn't start a download and the world at the same moment.
+  music?.prime();
   let celebration = null;   // built on demand — costs nothing until she finishes
 
   // ------------------------------------------------------------ state
   const state = Save.load();
-  const found = new Set(state.found);
-  found.forEach(i => memories.setFound(i, true));
-  sparks.setTaken(state.sparks || []);
+  // Only finished favours are saved, so closing the tab mid-errand just replays
+  // the asking — cheap, and better than restoring a half-finished conversation.
+  const quests = new Quests(scene, npcData?.people || [], { done: state.quests || [] });
   if (state.spawn) player.spawnPoint.set(state.spawn.x, state.spawn.y, state.spawn.z);
   player.pos.copy(player.spawnPoint);
 
   const persist = () => Save.save({
-    found: [...found],
-    sparks: sparks.points.map((p, i) => p.taken ? i : -1).filter(i => i >= 0),
+    quests: quests.doneIds(),
     spawn: { x: player.spawnPoint.x, y: player.spawnPoint.y, z: player.spawnPoint.z },
     unlocked: state.unlocked,
     finaleSeen: state.finaleSeen,
@@ -112,7 +115,6 @@ async function boot() {
   document.getElementById('talk-btn').addEventListener('click', () => { talkTapped = true; });
 
   const ui = new UI(data, {
-    getFound: () => found,
     onStart() {
       sound.init();
       music?.start();          // this click is the gesture that unlocks audio
@@ -146,7 +148,6 @@ async function boot() {
         stars.visible = false;
         celebration.start();
         sound.finale();
-        music?.playFirst();
       }
     },
     onFinaleClosed() { finaleJustClosed = true; },
@@ -165,11 +166,10 @@ async function boot() {
   celebration = new Celebration(scene, camera, world, player, ui, npcs, sound);
 
   // handy from the browser console when tweaking the world
-  window.__sw = { player, chase, world, memories, sparks, input, ui, sound, music,
+  window.__sw = { player, chase, world, quests, input, ui, sound, music,
                   celebration, npcs, renderer, scene, camera };
 
-  ui.setCount(found.size);
-  ui.setSparks(sparks.taken);
+  refreshObjective();
   ui.hideLoading();
   // Bind the on-screen stick regardless — it costs nothing on a machine that
   // never fires a touch event, and touch detection is not reliable enough to
@@ -259,10 +259,13 @@ async function boot() {
       chase.update(dt, player, look, true);
 
       handleEvents();
+      checkGate();
       checkPickups();
       checkCheckpoints();
       npcs.update(dt, t, player.pos, false, talkingTo);
-      handleTalking();
+      // Once Sage has told her to look up, finding Luna takes over from talking
+      // — Sage is standing right there and would otherwise eat the keypress.
+      if (!handleStargaze(dt)) handleTalking();
     } else {
       // keep the camera alive so the world still breathes behind a modal
       chase.update(dt, player, { x: 0, y: 0 }, false);
@@ -270,9 +273,8 @@ async function boot() {
       input.sample(basis);
     }
 
-    memories.update(dt, t, player.pos);
-    sparks.update(dt, t);
-    companion.update(dt, t, player, memories.next());
+    quests.update(dt, player.pos);
+    companion.update(dt, t, player, quests.objective()?.at || null);
 
     updateSky(dt);
     renderer.render(scene, camera);
@@ -293,34 +295,106 @@ async function boot() {
   }
 
   function checkPickups() {
-    const hit = memories.checkPickup(player.pos);
-    if (hit) {
-      memories.setFound(hit.index, true);
-      found.add(hit.index);
-      persist();
-      ui.setCount(found.size);
+    const got = quests.checkPickup(player.pos);
+    if (got) {
       sound.memory();
-      if (found.size === data.count && !state.finaleSeen) {
-        pendingFinale = true;
-        state.finaleSeen = true;
-        persist();
-        sound.finale();
-        setTimeout(() => { pendingFinale = false; ui.showFinale(); }, 900);
-      }
+      ui.toast(got.item?.label ? `Picked up the ${got.item.label}` : 'Got it');
+      refreshObjective();
     }
+  }
 
-    const si = sparks.checkPickup(player.pos);
-    if (si >= 0 && sparks.take(si)) {
-      ui.setSparks(sparks.taken);
-      sound.spark();
-      if (sparks.taken % 25 === 0) persist();
+  /**
+   * A zone stays shut until its favour is done. Rather than an invisible wall
+   * she can walk into and not understand, she's eased back a step and told
+   * exactly who is still waiting and for what.
+   */
+  let lastNudge = 0;
+  function checkGate() {
+    const gate = quests.gateFor(player.pos.z);
+    if (!gate) return;
+    player.pos.z = Math.min(player.pos.z, gate.z);
+    if (player.vel.z > 0) player.vel.z = 0;
+    const now = performance.now();
+    if (now - lastNudge > 3200) {
+      lastNudge = now;
+      const q = gate.quest;
+      ui.toast(q ? `${q.giver} is still waiting — ${q.task}` : 'Not yet.');
     }
+  }
+
+  function refreshObjective() {
+    ui.setObjective(quests.objective()?.text || '');
+  }
+
+  /** All five favours done — that's the game. */
+  function checkFinished() {
+    if (!quests.allDone() || state.finaleSeen) return;
+    pendingFinale = true;
+    state.finaleSeen = true;
+    persist();
+    sound.finale();
+    setTimeout(() => { pendingFinale = false; ui.showFinale(); }, 900);
   }
 
   /**
    * Walk up to one of the others and a prompt appears; press E (or the on-screen
    * button) to hear their next line. Walking off ends the conversation.
    */
+  /**
+   * The last thing the game asks of her: point the camera at the dog in the
+   * stars. The game ends here rather than on Sage's last line, so the final
+   * beat is something she does instead of something she's told.
+   */
+  const _lunaAt = new THREE.Vector3();
+  const _ndc    = new THREE.Vector3();
+  let gazeLift  = 0;
+  function handleStargaze(dt) {
+    const q = quests.stargazing();
+    if (!q) return false;
+
+    // The chase camera rests tilted downward, so the sky is off the top of the
+    // screen and Luna would have to be hunted for. When Sage says to look up,
+    // the camera lifts on its own for the first second or so — after that it's
+    // hers again, and turning to find Luna is the part she actually does.
+    if (gazeLift < 1) {
+      gazeLift += dt * 0.8;
+      chase.pitch += (-0.19 - chase.pitch) * Math.min(1, dt * 2.2);
+    }
+
+    lunaCentre(_lunaAt, player.pos);
+    quests.lookAt = _lunaAt;
+    if (talkingTo) { ui.hideSpeech(); talkingTo = null; }
+
+    // A generous window on purpose. She sits about 10° above the horizon, and
+    // the chase camera looks downward at its resting tilt, so a tight target
+    // meant hunting for one exact camera angle — 12 of 360 sampled positions.
+    // This is meant to be a nice moment, not a puzzle.
+    const v = _ndc.copy(_lunaAt).project(camera);
+    const onHer = luna.visible && v.z <= 1 && Math.abs(v.x) < 0.45 && Math.abs(v.y) < 0.78;
+
+    if (onHer) {
+      ui.showTalkPrompt(input.isTouch, input.isTouch ? 'Tap to say hello' : 'Press E to say hello');
+      if (input.takeTalk() || talkTapped) {
+        talkTapped = false;
+        quests.finishStargaze();
+        ui.hideTalkPrompt();
+        refreshObjective();
+        persist();
+        sound.memory();
+        checkFinished();
+      }
+    } else {
+      ui.hideTalkPrompt();
+      input.takeTalk();     // don't let a press sit queued until she looks up
+    }
+    return true;
+  }
+
+  /** A line of dialogue can ask for something. Only Sage's song does. */
+  function onDialogueCue(cue) {
+    if (cue === 'song') music?.cueTrack('giraffe-world', 14);
+  }
+
   const speechAt = new THREE.Vector3();
   function handleTalking() {
     const pressed = input.takeTalk() || talkTapped;
@@ -343,14 +417,19 @@ async function boot() {
 
     if (pressed) {
       // first press shows what they're on; after that it moves them along
-      const line = talkingTo === near
-        ? npcs.advance(near, found.size)
-        : npcs.current(near, found.size);
+      const line = npcs.speak(near, quests, talkingTo === near, onDialogueCue);
       if (line) {
         talkingTo = near;
         ui.hideTalkPrompt();
         ui.showSpeech(near.name, line);
         sound.talk();
+      } else {
+        // they've finished — the favour has just moved on
+        ui.hideSpeech();
+        talkingTo = null;
+        persist();
+        refreshObjective();
+        checkFinished();
       }
     }
 
@@ -393,7 +472,97 @@ async function boot() {
     stars.visible = pal.night > 0.02;
     stars.position.set(player.pos.x, 0, player.pos.z);
     stars.rotation.y += dt * 0.004;
+
+    // Luna sits in a fixed patch of sky rather than turning with the rest, so
+    // she's in the same place every time somebody looks up for her. The joining
+    // lines stay fainter than the stars they connect.
+    luna.visible = stars.visible;
+    luna.stars.material.opacity = pal.night;
+    luna.lines.material.opacity = pal.night * 0.85;
+    luna.position.set(player.pos.x, 0, player.pos.z);
   }
+}
+
+// Where Luna hangs: one fixed patch of sky, well above the horizon, so she's
+// in the same place every time anybody looks up for her.
+// `lift` puts her about 18° above the horizon from the sky zone. Lower and the
+// clouds and cliffs draw straight over her — she was at 96 and the terrain sat
+// in front of every star. Much higher and the chase camera, which can only look
+// about 31° up at its lowest tilt, can't frame her at all.
+// `scale` spreads her across about 19° of sky — roughly the size Orion takes
+// up, which is the point at which joined-up stars stop being a smudge and
+// start being an animal.
+const LUNA = { yaw: -0.72, dist: 330, lift: 128, scale: 20 };
+
+// A standing dog in profile, nose to the right, tail up. Points are stars;
+// links are the faint lines drawn between them — a scatter of dots reads as
+// noise, and it's the joining lines that make a constellation legible.
+const LUNA_STARS = [
+  [-2.60, -1.80], [-2.35, -0.85], [-2.05, -0.05],          // 0-2  hind leg
+  [-1.85,  0.45], [-0.75,  0.55], [ 0.35,  0.60],          // 3-5  the back
+  [ 0.85, -1.80], [ 0.70, -0.85], [ 0.55, -0.05],          // 6-8  front leg
+  [ 0.85,  1.00], [ 1.50,  1.40], [ 1.35,  1.95], [2.40, 1.20],  // 9-12 neck, head, ear, snout
+  [-2.20,  0.70], [-2.80,  1.30], [-3.15,  2.05],          // 13-15 tail
+];
+const LUNA_LINKS = [
+  [0, 1], [1, 2], [2, 3],                    // hind leg up into the hip
+  [3, 4], [4, 5],                            // the back
+  [5, 8], [8, 7], [7, 6],                    // shoulder down the front leg
+  [5, 9], [9, 10], [10, 11], [10, 12],       // neck, head, ear, snout
+  [3, 13], [13, 14], [14, 15],               // tail, curling up
+  [2, 8],                                    // belly
+];
+
+/** Turn a point in her flat sketch into a point on the sky dome. */
+function lunaPoint(sx, sy, out) {
+  const yaw = LUNA.yaw + (sx * LUNA.scale) / LUNA.dist;
+  return out.set(
+    Math.sin(yaw) * LUNA.dist,
+    LUNA.lift + sy * LUNA.scale,
+    Math.cos(yaw) * LUNA.dist,
+  );
+}
+
+/** Roughly the middle of her, for "are you looking at her yet". */
+function lunaCentre(out, playerPos) {
+  lunaPoint(0, 0.35, out);
+  out.x += playerPos.x;
+  out.z += playerPos.z;
+  return out;
+}
+
+function makeLuna() {
+  const v = new THREE.Vector3();
+  const starPos = new Float32Array(LUNA_STARS.length * 3);
+  LUNA_STARS.forEach(([sx, sy], i) => {
+    lunaPoint(sx, sy, v).toArray(starPos, i * 3);
+  });
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0xfff1c9, size: 7, sizeAttenuation: false,
+    transparent: true, opacity: 0, depthWrite: false,
+  }));
+
+  const linePos = new Float32Array(LUNA_LINKS.length * 6);
+  LUNA_LINKS.forEach(([a, b], i) => {
+    lunaPoint(...LUNA_STARS[a], v).toArray(linePos, i * 6);
+    lunaPoint(...LUNA_STARS[b], v).toArray(linePos, i * 6 + 3);
+  });
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
+  const lines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({
+    color: 0xdfe9ff, transparent: true, opacity: 0, depthWrite: false,
+  }));
+
+  const g = new THREE.Group();
+  g.add(lines, stars);
+  g.frustumCulled = false;
+  stars.frustumCulled = false;
+  lines.frustumCulled = false;
+  g.stars = stars;
+  g.lines = lines;
+  return g;
 }
 
 function makeStars() {
