@@ -8,9 +8,7 @@ const _proj = new THREE.Vector3();   // scratch, so projecting doesn't allocate
 
 const norm = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '');
 const clamp01 = (v) => Math.max(0.04, Math.min(0.96, v));
-// the bubble is wide and sits above its anchor, so it needs more margin
-const clampEdge     = (v) => Math.max(0.22, Math.min(0.78, v));
-const clampSpeechY  = (v) => Math.max(0.20, Math.min(0.86, v));
+const clampBetween = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 export class UI {
   constructor(data, hooks) {
@@ -269,9 +267,21 @@ export class UI {
     if (touch) $('talk-btn').classList.remove('hidden');
   }
 
+  /** Nobody in range: the wording and the button both go. */
   hideTalkPrompt() {
     $('talk-prompt').classList.add('hidden');
     $('talk-btn').classList.add('hidden');
+  }
+
+  /**
+   * Mid-conversation: drop the "tap TALK" wording, which she's plainly already
+   * worked out, but keep the button itself. On a phone it's the only way to
+   * hear the next line — hiding it meant walking away and coming back for
+   * every single line.
+   */
+  hideTalkHint(touch) {
+    $('talk-prompt').classList.add('hidden');
+    if (touch) $('talk-btn').classList.remove('hidden');
   }
 
   showSpeech(name, text) {
@@ -297,9 +307,19 @@ export class UI {
     // behind the camera the projection mirrors, so flip it back before clamping
     const x = behind ? -v.x : v.x;
     const y = behind ? -1   : v.y;
+
+    // Clamp against the bubble's actual size rather than a fixed percentage.
+    // It's up to 74vw wide and sits above its anchor, so on a phone a flat 22%
+    // margin still left a third of it off the left edge.
+    const vw = Math.max(1, innerWidth), vh = Math.max(1, innerHeight);
+    const halfW = (el.offsetWidth / 2 + 8) / vw;
+    const fx = clampBetween(x * 0.5 + 0.5, Math.min(0.5, halfW), Math.max(0.5, 1 - halfW));
+    const topGap = (el.offsetHeight + 12) / vh;
+    const fy = clampBetween(-y * 0.5 + 0.5, Math.min(0.9, topGap), 0.92);
+
     el.style.opacity = '1';
-    el.style.left = `${clampEdge(x * 0.5 + 0.5) * 100}%`;
-    el.style.top  = `${clampSpeechY(-y * 0.5 + 0.5) * 100}%`;
+    el.style.left = `${fx * 100}%`;
+    el.style.top  = `${fy * 100}%`;
   }
 
   toast(msg, ms = 2600) {

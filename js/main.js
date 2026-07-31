@@ -413,14 +413,17 @@ async function boot() {
       return;
     }
 
-    if (talkingTo !== near) ui.showTalkPrompt(input.isTouch);
+    // Somebody is in range, so the TALK button stays up for the whole
+    // conversation — it's how a touch player gets to the next line.
+    if (talkingTo === near) ui.hideTalkHint(input.isTouch);
+    else ui.showTalkPrompt(input.isTouch);
 
     if (pressed) {
       // first press shows what they're on; after that it moves them along
       const line = npcs.speak(near, quests, talkingTo === near, onDialogueCue);
       if (line) {
         talkingTo = near;
-        ui.hideTalkPrompt();
+        ui.hideTalkHint(input.isTouch);
         ui.showSpeech(near.name, line);
         sound.talk();
       } else {
