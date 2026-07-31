@@ -169,7 +169,6 @@ async function boot() {
                   celebration, npcs, renderer, scene, camera };
 
   ui.setCount(found.size);
-  player.aura.setPower(found.size / data.count);
   ui.setSparks(sparks.taken);
   ui.hideLoading();
   // Bind the on-screen stick regardless — it costs nothing on a machine that
@@ -246,7 +245,6 @@ async function boot() {
       if (!ui.isBlocking()) {
         celebration.update(dt, input);
         npcs.update(dt, t, celebration.pos, true, null);
-        player.aura.update(dt, t, celebration.pos);
       }
       input.takeLook(dt);
       renderer.render(scene, camera);
@@ -272,7 +270,6 @@ async function boot() {
       input.sample(basis);
     }
 
-    player.aura.update(dt, t, player.pos);
     memories.update(dt, t, player.pos);
     sparks.update(dt, t);
     companion.update(dt, t, player, memories.next());
@@ -303,7 +300,6 @@ async function boot() {
       persist();
       ui.setCount(found.size);
       sound.memory();
-      player.aura.setPower(found.size / data.count);
       if (found.size === data.count && !state.finaleSeen) {
         pendingFinale = true;
         state.finaleSeen = true;

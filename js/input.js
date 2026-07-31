@@ -147,15 +147,13 @@ export class Input {
     return t;
   }
 
-  /** Camera look for this frame, from drag plus Q/E and comma/period. */
-  takeLook(dt) {
+  /**
+   * Camera look for this frame. Drag only — E used to nudge the camera as well
+   * as talk, so every line of dialogue swung the view a little.
+   */
+  takeLook() {
     const out = { x: this.look.x, y: this.look.y };
     this.look.x = this.look.y = 0;
-    const k = this.keys;
-    if (k.has('q')) out.x -= 2.4 * dt;
-    if (k.has('e')) out.x += 2.4 * dt;
-    if (k.has('r')) out.y -= 1.4 * dt;
-    if (k.has('f')) out.y += 1.4 * dt;
     return out;
   }
 }

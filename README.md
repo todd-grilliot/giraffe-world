@@ -2,8 +2,8 @@
 
 A small 3D platformer. You play a giraffe exploring five zones — a meadow, a
 creek, deep woods, a coast at sunset, and a night sky — collecting sixteen
-glowing things. Every one you take makes you glow brighter, and the locals get
-steadily more worried about it, because there's a prophecy.
+glowing things. The locals are delighted you came and get more and more excited
+as you collect them.
 
 Built with three.js, no build step, no dependencies to install. It's plain files.
 
@@ -16,13 +16,6 @@ they're called — that's the joke, and every giraffe has their own name for the
 
 `data/game.json` holds the count and all the text she sees: the gate question,
 the opening card, and the ending. It's small.
-
-### The glow
-
-Every one she picks up makes her brighter. It starts as a warm shine, and past
-about halfway it begins cycling colours, throwing sparks and flickering, until
-by sixteen she's a strobing pillar of light with a flame coming off her. It's
-all in `js/aura.js` and driven by one number — how many she has out of the total.
 
 ### The gate
 
@@ -51,15 +44,16 @@ anyone who goes looking can read the files directly.
 
 Eight other giraffes live here, each in a different outfit. Walk up to one and a
 prompt appears; press **E** (or the on-screen TALK button) to hear their next
-line, and again for the one after. They wander their patch with their arms in
+line, and again for the one after. E only talks — it used to nudge the camera
+too, which swung the view a little on every line. They wander their patch with their arms in
 the air, and during the fly-around they scatter instead.
 
 What they say depends on **how many she's collected**. Each giraffe has `stages`
 in `data/npcs.json`, and the one with the highest `from` she's reached is what
-they use — so they go from cheerfully oblivious, to noticing she's a bit shiny,
-to openly begging her to stop, to shouting in capitals near the end. There's a
-prophecy about somebody gathering all sixteen and ruling Giraffe World, and they
-are increasingly certain it's her.
+they use — so they start pleased she turned up and get steadily more excited as
+she goes. There's a gentle old story that whoever gathers all sixteen makes the
+world kinder, which they mention in passing and are quietly thrilled about. It
+never gets heavier than that; they mostly just like her.
 
 `data/npcs.json` is all of it — names, positions, outfits, and every line.
 Rewrite any of it. Outfits come from `OUTFITS` in `js/giraffe.js`: topHat,
