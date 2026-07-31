@@ -59,8 +59,13 @@ the top.
 
 Four of them don't want anything from you, on purpose: a world where everybody
 hands you a task reads as an errand list. Marlow gossips, Odie naps and talks
-about the patch of land he's saving for, Winnifred can't remember whether you've
-met, and Wendell has one thought and won't elaborate.
+about the patch of land he's saving for, Winnifred lives in the clouds and is
+terrified of heights, and Wendell has one thought and won't elaborate.
+
+Winnifred used to be the forgetful one, repeating herself and then catching
+it. It didn't land, and the reason is worth remembering if you write more of
+them: repeated dialogue is indistinguishable from a bug. Players assume the
+game broke rather than reading it as a character.
 
 Outfits come from `OUTFITS` in `js/giraffe.js`: topHat, partyHat, beanie, sunHat,
 flowerCrown, glasses, shades, scarf, bowTie, sweater, cape, backpack.
