@@ -392,7 +392,7 @@ async function boot() {
 
   /** A line of dialogue can ask for something. Only Sage's song does. */
   function onDialogueCue(cue) {
-    if (cue === 'song') music?.cueTrack('giraffe-world', 14);
+    if (cue === 'song') music?.cueTrack('giraffe-world', 11);
   }
 
   const speechAt = new THREE.Vector3();
@@ -495,7 +495,9 @@ async function boot() {
 // `scale` spreads her across about 19° of sky — roughly the size Orion takes
 // up, which is the point at which joined-up stars stop being a smudge and
 // start being an animal.
-const LUNA = { yaw: -0.72, dist: 330, lift: 128, scale: 20 };
+// `lift` has to rise whenever Sage's summit does, or she sinks toward the
+// horizon and the scenery draws over her again.
+const LUNA = { yaw: -0.72, dist: 330, lift: 142, scale: 20 };
 
 // A standing dog in profile, nose to the right, tail up. Points are stars;
 // links are the faint lines drawn between them — a scatter of dots reads as

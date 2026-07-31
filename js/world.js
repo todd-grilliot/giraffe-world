@@ -591,10 +591,18 @@ export function buildWorld(scene) {
   mem(14, 26.8, 190);
   cp(14, 26.8, 190);
 
-  // ramp back down toward the sea
-  for (let i = 0; i < 6; i++) {
-    b.plat(14 - i * 1.2, 25.4 - i * 3.8, 198.25 + i * 5.5, 7.5 - i * 0.2, 6.5, i < 3 ? 0x54764a : SAND, { thickness: 1.4 });
+  // The stair down to the sea — and, since the fig, the stair back up to
+  // Bertrand as well. It was written for going down, where the size of a step
+  // costs nothing: six drops of 3.8. Climbing it is a different game, because a
+  // single jump only clears 3.31, so every step wanted a timed double jump and
+  // one miss put her back on the beach. Nine gentler steps instead. Each one is
+  // an ordinary jump now and the double is spare, which is what it's for.
+  for (let i = 0; i < 9; i++) {
+    b.plat(14 - i * 0.8, 25.4 - i * 2.65, 198.25 + i * 4.8, 7.5 - i * 0.13, 6.5,
+           i < 4 ? 0x54764a : SAND, { thickness: 1.4 });
   }
+  // halfway up, so a slip on the climb doesn't cost the whole beach
+  cp(10.8, 16.2, 217.45);
 
   // ======================================================= 4. THE COAST
   b.plat(0, 1.6, 232, 54, 50, SAND, { thickness: 4 });
@@ -704,6 +712,18 @@ export function buildWorld(scene) {
   cloudify(-1, 49.4, 351, 12);
   mem(-1, 51.3, 351);
   sparkArc(-1, 43.8, 337, -1, 49.4, 347, 4);
+
+  // Three more above that, and Sage waits on the last one — she has the last
+  // word in the game, so she should be standing higher than anything else in
+  // it. Same 2.8 rises as the rest of the climb: an ordinary jump each.
+  b.plat(-1, 52.2, 360, 8, 8, CLOUD, { thickness: 1.6 });
+  cloudify(-1, 52.2, 360, 8);
+  b.plat( 4, 55.0, 369, 8, 8, CLOUD, { thickness: 1.6 });
+  cloudify( 4, 55.0, 369, 8);
+  b.plat(-1, 57.8, 378, 13, 13, 0xf4f8ff, { thickness: 2.8 });
+  cloudify(-1, 57.8, 378, 13);
+  sparkArc(-1, 49.4, 355, -1, 57.8, 374, 4);
+  cp(-1, 57.8, 378);
 
   // a ring of little clouds around the summit, just to look nice
   {
