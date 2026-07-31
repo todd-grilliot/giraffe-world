@@ -203,16 +203,76 @@ function tufts(b, spots, color = 0x6ba556) {
   })));
 }
 
-/** A bouncy mushroom. Land on the cap and you go flying. */
-function mushroom(b, x, y, z, { cap = 0xd4574e, stem = 0xf0e4cf, r = 2.1, bounce = 24 } = {}) {
+/**
+ * A bouncy mushroom. Touch the cap and it throws you at `aim` — the arc is
+ * solved at launch, so there's no timing or run-up to get right. The pad is
+ * deliberately wider than the cap it sits under, so a near miss still counts.
+ */
+function mushroom(b, x, y, z, { cap = 0xd4574e, stem = 0xf0e4cf, r = 2.1, bounce = 24, aim = null } = {}) {
   const stemH = 1.4;
   b.deco(new THREE.CylinderGeometry(r * 0.3, r * 0.42, stemH, 8), b.mat(stem), x, y - stemH / 2 + 0.1, z);
   const capMesh = b.deco(new THREE.SphereGeometry(r, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), b.mat(cap), x, y - 0.35, z);
   capMesh.scale.set(1, 0.62, 1);
-  // the collider is a flat disc-ish box just under the cap crown
-  const s = b.plat(x, y + 0.05, z, r * 1.35, r * 1.35, cap, { thickness: 0.5, bounce, castShadow: false });
+  const s = b.plat(x, y + 0.05, z, r * 1.75, r * 1.75, cap, { thickness: 0.5, bounce, castShadow: false });
   s.mesh.visible = false;
+  if (aim) s.aim = new THREE.Vector3(aim[0], aim[1], aim[2]);
   return s;
+}
+
+/** A big cactus in sunglasses, because the desert should have some attitude. */
+function cactus(b, x, y, z, { s = 1, face = 0 } = {}) {
+  const GREEN = 0x4f8f5c, GREEN_D = 0x3f7549, SHADE = 0x201d26, LENS = 0x2f3a4a;
+  const g = new THREE.Group();
+  g.position.set(x, y, z);
+  g.rotation.y = face;
+  b.group.add(g);
+
+  const add = (geo, color, px, py, pz, rx = 0, rz = 0) => {
+    const m = new THREE.Mesh(geo, b.mat(color));
+    m.position.set(px, py, pz);
+    m.rotation.x = rx; m.rotation.z = rz;
+    m.castShadow = true; m.receiveShadow = true;
+    g.add(m);
+    return m;
+  };
+
+  const H = 8.2 * s, R = 1.05 * s;
+  add(new THREE.CylinderGeometry(R * 0.92, R * 1.12, H, 12), GREEN, 0, H / 2, 0);
+  add(new THREE.SphereGeometry(R * 0.92, 12, 8), GREEN, 0, H, 0);
+
+  // ribs, so it isn't a smooth pole
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2;
+    const rib = add(new THREE.BoxGeometry(0.1 * s, H * 0.94, 0.1 * s), GREEN_D,
+      Math.cos(a) * R * 0.94, H / 2, Math.sin(a) * R * 0.94);
+    rib.scale.z = 1.8;
+  }
+
+  // two arms: out, then up
+  for (const dir of [-1, 1]) {
+    const armY = H * (dir < 0 ? 0.52 : 0.42);
+    const reach = 1.5 * s * dir;
+    add(new THREE.CylinderGeometry(R * 0.5, R * 0.55, Math.abs(reach) * 2, 10),
+      GREEN, reach * 0.55, armY, 0, 0, Math.PI / 2);
+    const upH = 2.4 * s * (dir < 0 ? 1.15 : 0.9);
+    add(new THREE.CylinderGeometry(R * 0.48, R * 0.52, upH, 10), GREEN, reach, armY + upH / 2, 0);
+    add(new THREE.SphereGeometry(R * 0.48, 10, 8), GREEN, reach, armY + upH, 0);
+  }
+
+  // sunglasses
+  const eyeY = H * 0.86, front = R * 0.86;
+  const lensGeo = new THREE.SphereGeometry(0.34 * s, 10, 8);
+  for (const dx of [-0.44 * s, 0.44 * s]) {
+    const lens = add(lensGeo, LENS, dx, eyeY, front);
+    lens.scale.set(1.05, 0.82, 0.34);
+  }
+  add(new THREE.BoxGeometry(0.34 * s, 0.1 * s, 0.14 * s), SHADE, 0, eyeY + 0.04 * s, front);
+  for (const dx of [-0.86 * s, 0.86 * s]) {
+    add(new THREE.BoxGeometry(0.5 * s, 0.09 * s, 0.12 * s), SHADE, dx, eyeY + 0.05 * s, front * 0.5);
+  }
+
+  b.blocker(x, y + H / 2, z, R * 2.4, H, R * 2.4);
+  return g;
 }
 
 // ---------------------------------------------------------------- the world
@@ -284,9 +344,9 @@ export function buildWorld(scene) {
   sparkArc(-4, 0, 22, -11, 0, 29, 4);
 
   // memory 3 — first real jump: three steps up to a lookout
-  b.plat(9,  2.2, 34, 4.4, 4.4, DIRT);
-  b.plat(13, 4.4, 38, 4.0, 4.0, DIRT);
-  b.plat(9,  6.6, 42, 4.6, 4.6, WOOD);
+  b.plat(9,  2.2, 34, 5.8, 5.8, DIRT);
+  b.plat(13, 4.4, 38, 5.4, 5.4, DIRT);
+  b.plat(9,  6.6, 42, 6.0, 6.0, WOOD);
   mem(9, 8.0, 42);
   sparkArc(9, 2.2, 34, 13, 4.4, 38, 3);
   sparkArc(13, 4.4, 38, 9, 6.6, 42, 3);
@@ -308,7 +368,7 @@ export function buildWorld(scene) {
   const stones = [
     [-3, 0.8, 66], [3.5, 1.1, 72], [-2, 1.4, 78], [4.5, 1.1, 84],
   ];
-  for (const [x, y, z] of stones) b.plat(x, y, z, 3.6, 3.6, STONE, { thickness: 2.6 });
+  for (const [x, y, z] of stones) b.plat(x, y, z, 4.8, 4.8, STONE, { thickness: 2.6 });
   sparkArc(0, 0, 60, -3, 0.8, 66, 3);
   for (let i = 0; i < stones.length - 1; i++) {
     sparkArc(stones[i][0], stones[i][1], stones[i][2], stones[i+1][0], stones[i+1][1], stones[i+1][2], 2);
@@ -330,8 +390,8 @@ export function buildWorld(scene) {
   sparkArc(14, 2.4, 96, 19, 5.0, 102, 3);
 
   // memory 6 — across two sliding lily pads
-  b.moving(2, 4.0, 114, 5, 5, 0x579c68, { axis: 'x', amp: 7, period: 6, thickness: 0.7 });
-  b.moving(-4, 5.4, 122, 5, 5, 0x579c68, { axis: 'x', amp: 6, period: 5, phase: 0.5, thickness: 0.7 });
+  b.moving(2, 4.0, 114, 6.5, 6.5, 0x579c68, { axis: 'x', amp: 6, period: 7.5, thickness: 0.7 });
+  b.moving(-4, 5.4, 122, 6.5, 6.5, 0x579c68, { axis: 'x', amp: 5.5, period: 6.5, phase: 0.5, thickness: 0.7 });
   b.plat(-14, 6.4, 128, 9, 8, GRASS_D, { thickness: 4 });
   mem(-14, 7.8, 128);
   cp(-14, 7.8, 128);
@@ -351,10 +411,13 @@ export function buildWorld(scene) {
 
   // memory 8 — first bounce: mushroom up to a branch platform. The cap's launch
   // speed has to clear the branch with room to spare, or the jump reads as broken.
-  mushroom(b, 4, 7.2, 150, { cap: 0xd4574e, bounce: 28 });
-  b.plat(4, 14.5, 156, 6.5, 6.5, WOOD);
+  // The pad sits well back from the branch: throw from too close and the arc is
+  // so steep it clips the platform's leading edge on the way up instead of
+  // sailing over it.
+  mushroom(b, 4, 7.2, 147, { cap: 0xd4574e, bounce: 28, aim: [4, 14.5, 156] });
+  b.plat(4, 14.5, 156, 7.5, 7.5, WOOD);
   mem(4, 15.9, 156);
-  sparkArc(4, 7.6, 150, 4, 13.5, 155, 4);
+  sparkArc(4, 7.6, 147, 4, 13.5, 154, 4);
   cp(4, 14.3, 156);
 
   // memory 9 — a spiral of branches around the big tree, evenly spaced so each
@@ -365,27 +428,29 @@ export function buildWorld(scene) {
   b.deco(new THREE.IcosahedronGeometry(6.4, 0), b.mat(0x2c5233), -6, 33.5, 166, 0.6);
   b.deco(new THREE.IcosahedronGeometry(4.6, 0), b.mat(0x36613c), -10.5, 31.5, 168.5, 1.2);
   b.deco(new THREE.IcosahedronGeometry(4.2, 0), b.mat(0x36613c), -1.5, 31.8, 163.5, 2.1);
+  // wide branches — the climb should be about looking around, not about landing
+  // on a dinner plate four times in a row
   const spiral = [
-    [-1.5, 17.4, 164], [-4, 20.0, 170], [-10, 22.6, 169], [-11.5, 25.2, 163],
+    [-1.5, 17.0, 164], [-4.5, 19.2, 170.5], [-10.5, 21.4, 169], [-12, 23.6, 163],
   ];
-  for (const [x, y, z] of spiral) b.plat(x, y, z, 5, 5, 0x6b4c33, { thickness: 0.8 });
-  b.plat(-6, 27.8, 166, 7.5, 7.5, 0x3f6b3c);
-  mem(-6, 29.2, 166);
+  for (const [x, y, z] of spiral) b.plat(x, y, z, 7, 7, 0x6b4c33, { thickness: 0.8 });
+  b.plat(-6, 25.8, 166, 9, 9, 0x3f6b3c);
+  mem(-6, 27.2, 166);
   for (let i = 0; i < spiral.length - 1; i++) {
     sparkArc(spiral[i][0], spiral[i][1], spiral[i][2], spiral[i+1][0], spiral[i+1][1], spiral[i+1][2], 2);
   }
-  cp(-6, 27.6, 166);
+  cp(-6, 25.6, 166);
 
   // memory 10 — a hop across moving branches out of the canopy
-  b.moving(2, 28.6, 174, 5, 5, 0x6b4c33, { axis: 'x', amp: 6.5, period: 5.5, thickness: 0.7 });
-  b.moving(8, 28.6, 182, 5, 5, 0x6b4c33, { axis: 'z', amp: 4.5, period: 4.5, phase: 0.3, thickness: 0.7 });
-  b.plat(14, 27.0, 190, 10, 9, 0x54764a, { thickness: 4 });
-  mem(14, 28.4, 190);
-  cp(14, 28.4, 190);
+  b.moving(2, 26.6, 174, 6.5, 6.5, 0x6b4c33, { axis: 'x', amp: 5.5, period: 7, thickness: 0.7 });
+  b.moving(8, 26.6, 182, 6.5, 6.5, 0x6b4c33, { axis: 'z', amp: 4, period: 6, phase: 0.3, thickness: 0.7 });
+  b.plat(14, 25.4, 190, 11, 10, 0x54764a, { thickness: 4 });
+  mem(14, 26.8, 190);
+  cp(14, 26.8, 190);
 
   // ramp back down toward the sea
   for (let i = 0; i < 6; i++) {
-    b.plat(14 - i * 1.2, 27.0 - i * 4.1, 196 + i * 5.5, 7 - i * 0.3, 6, i < 3 ? 0x54764a : SAND, { thickness: 1.4 });
+    b.plat(14 - i * 1.2, 25.4 - i * 3.8, 196 + i * 5.5, 7.5 - i * 0.2, 6.5, i < 3 ? 0x54764a : SAND, { thickness: 1.4 });
   }
 
   // ======================================================= 4. THE COAST
@@ -394,6 +459,12 @@ export function buildWorld(scene) {
   b.water(-150, 206, 150, 430, -0.8, 0x3f8fb8);
   rocks(b, Array.from({ length: 18 }, () => ({ x: rr(-26, 26), y: rr(1.4, 2.6), z: rr(210, 254), s: rr(0.4, 1.4) })), 0xb5a88c);
   tufts(b, Array.from({ length: 16 }, () => ({ x: rr(-25, 25), y: 1.6, z: rr(210, 250) })), 0xa8b06a);
+
+  // The dry inland side of the sand. One big cactus in sunglasses, standing
+  // where she comes over the ridge, and a couple of smaller ones behind it.
+  cactus(b, -15, 1.6, 214, { s: 1.25, face: 0.18 });
+  cactus(b, 12, 1.6, 210, { s: 0.8, face: -0.5 });
+  cactus(b, -22, 1.6, 232, { s: 0.62, face: 0.9 });
   trees(b, [
     { x: -22, y: 1.6, z: 216, h: 7 }, { x: 23, y: 1.6, z: 222, h: 6.5 }, { x: -24, y: 1.6, z: 246, h: 7.5 },
   ], { trunk: 0x8a6a4a, leaf: 0x5f8f52, leaf2: 0x527f47 });
@@ -410,8 +481,8 @@ export function buildWorld(scene) {
   cp(-11.2, 4.0, 262);
 
   // memory 12 — bobbing rafts out on the water
-  b.moving(-2, 3.2, 258, 5.5, 5.5, 0xa87f52, { axis: 'y', amp: 1.0, period: 3.4, thickness: 0.6 });
-  b.moving(6,  3.6, 264, 5.5, 5.5, 0xa87f52, { axis: 'x', amp: 5.5, period: 5, phase: 0.25, thickness: 0.6 });
+  b.moving(-2, 3.2, 258, 7, 7, 0xa87f52, { axis: 'y', amp: 0.8, period: 4, thickness: 0.6 });
+  b.moving(6,  3.6, 264, 7, 7, 0xa87f52, { axis: 'x', amp: 5, period: 6.5, phase: 0.25, thickness: 0.6 });
   b.plat(14, 4.2, 270, 8, 8, 0xb5a88c, { thickness: 4 });
   mem(14, 5.6, 270);
   cp(14, 5.6, 270);
@@ -430,7 +501,7 @@ export function buildWorld(scene) {
   // A big mushroom, planted on the headland, flings you into the clouds. From
   // there the climb is a staircase: every step is a rise of 2.6 over a gap of
   // about one, which a single jump clears comfortably.
-  mushroom(b, 20, 13.6, 250, { cap: 0xb07fd4, stem: 0xe8ddf2, r: 2.6, bounce: 33 });
+  mushroom(b, 20, 13.6, 250, { cap: 0xb07fd4, stem: 0xe8ddf2, r: 2.6, bounce: 33, aim: [16, 23.0, 262] });
   sparkArc(20, 13.6, 253, 16, 23.0, 259, 4);
 
   // Puffs tucked around the rim turn a flat box into something cloud-shaped.
@@ -470,8 +541,8 @@ export function buildWorld(scene) {
   mem(-8, 30.0, 280);
 
   // memory 15 — across two drifting clouds
-  b.moving(-2, 38.6, 316, 6, 6, CLOUD, { axis: 'x', amp: 5, period: 6, thickness: 0.8 });
-  b.moving( 4, 41.2, 324, 6, 6, CLOUD, { axis: 'z', amp: 4, period: 4.8, phase: 0.4, thickness: 0.8 });
+  b.moving(-2, 38.6, 316, 7.5, 7.5, CLOUD, { axis: 'x', amp: 4.5, period: 7.5, thickness: 0.8 });
+  b.moving( 4, 41.2, 324, 7.5, 7.5, CLOUD, { axis: 'z', amp: 3.5, period: 6, phase: 0.4, thickness: 0.8 });
   b.plat(-1, 43.8, 333, 9, 9, CLOUD, { thickness: 2.4 });
   cloudify(-1, 43.8, 333, 9);
   mem(-1, 45.2, 333);

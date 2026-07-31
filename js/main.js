@@ -227,9 +227,10 @@ async function boot() {
 
   function handleEvents() {
     const e = player.events;
-    if (e.bounced)      sound.bounce();
-    else if (e.jumped)  e.doubleJump ? sound.double() : sound.jump();
-    if (e.landed)       sound.land();
+    if (e.bounced)       sound.bounce();
+    else if (e.jumped)   sound.jump(e.jumpIndex);
+    else if (e.fluttered) sound.flutter();
+    if (e.landed)        sound.land();
     if (e.respawned) {
       sound.splash();
       ui.toast('Back to solid ground.');

@@ -187,6 +187,9 @@ export class Player {
     this.jumps       = 0;
     this.runPhase    = 0;
     this.squash      = 1;
+    this.launchLock  = 0;
+    this.gliding     = false;
+    this.cuttable    = false;   // is the current rise still trimmable on release?
     this.spawnPoint  = this.pos.clone();
 
     this.rig = buildGiraffe();
@@ -205,7 +208,7 @@ export class Player {
     scene.add(this.blob);
 
     this._box = { min: new THREE.Vector3(), max: new THREE.Vector3() };
-    this.events = { jumped: false, landed: false, bounced: false, respawned: false };
+    this.events = { jumped: false, landed: false, bounced: false, respawned: false, fluttered: false };
   }
 
   aabbAt(p, out = this._box) {
@@ -218,6 +221,9 @@ export class Player {
     this.pos.copy(this.spawnPoint);
     this.vel.set(0, 0, 0);
     this.jumps = 0;
+    this.launchLock = 0;
+    this.gliding = false;
+    this.cuttable = false;
     this.events.respawned = true;
   }
 
@@ -228,7 +234,8 @@ export class Player {
    */
   update(dt, input) {
     const e = this.events;
-    e.jumped = e.landed = e.bounced = e.respawned = false;
+    e.jumped = e.landed = e.bounced = e.respawned = e.fluttered = false;
+    e.jumpIndex = 0;
 
     // ride whatever we're standing on
     if (this.grounded && this.groundSolid?.mover) {
@@ -239,7 +246,11 @@ export class Player {
     const wasGrounded = this.grounded;
     const accel = wasGrounded ? CFG.accelGround : CFG.accelAir;
     const fric  = wasGrounded ? CFG.frictionGround : CFG.frictionAir;
-    const mag   = Math.hypot(input.x, input.z);
+
+    // A mushroom has already decided where you're going; ignore steering for a
+    // moment so a stray thumb can't throw off a shot that was aimed for you.
+    this.launchLock = Math.max(0, this.launchLock - dt);
+    const mag = this.launchLock > 0 ? 0 : Math.hypot(input.x, input.z);
 
     if (mag > 0.001) {
       const nx = input.x / mag, nz = input.z / mag;
@@ -252,7 +263,7 @@ export class Player {
         this.vel.x *= k; this.vel.z *= k;
       }
       this.facing = turnToward(this.facing, Math.atan2(nx, nz), CFG.turnSpeed * dt);
-    } else {
+    } else if (this.launchLock <= 0) {
       const damp = Math.max(0, 1 - fric * dt);
       this.vel.x *= damp;
       this.vel.z *= damp;
@@ -263,21 +274,48 @@ export class Player {
     this.buffered = Math.max(0, this.buffered - dt);
     this.coyote   = wasGrounded ? CFG.coyoteTime : Math.max(0, this.coyote - dt);
 
+    this.gliding = false;
+
     if (this.buffered > 0) {
       if (this.coyote > 0 && this.jumps === 0) {
         this.vel.y = CFG.jumpSpeed;
         this.jumps = 1; this.coyote = 0; this.buffered = 0;
-        this.squash = 0.72; e.jumped = true;
-      } else if (this.jumps === 1) {
-        this.vel.y = CFG.doubleJumpSpeed;
-        this.jumps = 2; this.buffered = 0;
-        this.squash = 0.7; e.jumped = true; e.doubleJump = true;
+        this.squash = 0.72; e.jumped = true; e.jumpIndex = 0;
+        this.cuttable = input.jumpHeld;
+      } else if (this.jumps < CFG.maxJumps) {
+        // each one weaker than the last. max() so tapping while still rising
+        // never slows you down.
+        const boost = CFG.jumpSpeed * Math.pow(CFG.jumpFalloff, this.jumps);
+        this.vel.y = Math.max(this.vel.y, boost);
+        this.buffered = 0;
+        this.squash = 0.74; e.jumped = true; e.jumpIndex = this.jumps;
+        this.cuttable = input.jumpHeld;
+        this.jumps++;
+      } else if (this.vel.y < CFG.flutterFall) {
+        // out of lift: a press can only ease the fall, never add height
+        this.vel.y = CFG.flutterFall;
+        this.buffered = 0;
+        e.fluttered = true;
       }
     }
-    // let go of jump early and you don't go as high
-    if (!input.jumpHeld && this.vel.y > 4) this.vel.y *= 0.86;
 
-    this.vel.y = Math.max(CFG.maxFall, this.vel.y + CFG.gravity * dt);
+    // holding the button once the jumps are spent turns the drop into a glide
+    if (!wasGrounded && this.jumps >= CFG.maxJumps && input.jumpHeld && this.vel.y < 0) {
+      this.gliding = true;
+    }
+
+    // Variable jump height: letting go early trims the jump you're in, ONCE, on
+    // the release. Applying it every airborne frame (as this used to) bled away
+    // the whole climb in a fifth of a second and made mushroom launches fall
+    // far short of where they were aimed.
+    if (this.cuttable && !input.jumpHeld) {
+      if (this.vel.y > 4) this.vel.y *= 0.62;
+      this.cuttable = false;
+    }
+
+    const g = this.gliding ? CFG.gravity * CFG.glideGravity : CFG.gravity;
+    this.vel.y = Math.max(CFG.maxFall, this.vel.y + g * dt);
+    if (this.gliding) this.vel.y = Math.max(this.vel.y, CFG.flutterFall);
 
     // --- move and collide, one axis at a time -------------------------
     this.grounded = false;
@@ -323,10 +361,7 @@ export class Player {
       if (landOn) {
         this.pos.y = landY;
         if (landOn.bounce) {
-          this.vel.y = landOn.bounce;
-          this.jumps = 0;
-          this.squash = 0.58;
-          this.events.bounced = true;
+          this._launch(landOn);
         } else {
           this.vel.y = 0;
           this.grounded = true;
@@ -345,6 +380,39 @@ export class Player {
         break;
       }
     }
+  }
+
+  /**
+   * Bounce pads throw you somewhere specific rather than just adding upward
+   * speed. Given a target, we solve the arc that lands on it and overwrite the
+   * whole velocity — so it doesn't matter how fast you arrived, from which
+   * direction, or whether you jumped at the right moment. Touch it and you get
+   * where it was always going to send you.
+   */
+  _launch(pad) {
+    this.jumps = 0;
+    this.squash = 0.55;
+    this.cuttable = false;      // a throw is never trimmed by the jump button
+    this.launchLock = 0;
+    this.events.bounced = true;
+
+    if (!pad.aim) {                       // plain trampoline, no destination
+      this.vel.y = pad.bounce;
+      return;
+    }
+
+    const g = -CFG.gravity;
+    const margin = CFG.launchMargin;                      // clear the target by this much
+    const rise = Math.max(0.6, (pad.aim.y - this.pos.y) + margin);
+    const vy = Math.sqrt(2 * g * rise);
+    const flight = vy / g + Math.sqrt(2 * margin / g);     // up to the peak, then down onto it
+
+    this.vel.set(
+      (pad.aim.x - this.pos.x) / flight,
+      vy,
+      (pad.aim.z - this.pos.z) / flight,
+    );
+    this.launchLock = CFG.launchLock;
   }
 
   /** Horizontal push-out, with a small step-up so kerbs and lips don't snag. */
@@ -412,11 +480,22 @@ export class Player {
       f.body.position.y = Math.abs(Math.sin(this.runPhase)) * 0.06 * run
                         + Math.sin(t * 2.2) * 0.018 * (1 - run);
       f.body.rotation.x = run * 0.16;
+    } else if (this.gliding) {
+      // arms out, legs dangling — clearly a float rather than a fall
+      const flap = Math.sin(t * 9) * 0.16;
+      f.legL.rotation.x = -0.25 + flap * 0.4;
+      f.legR.rotation.x = -0.25 - flap * 0.4;
+      f.armL.rotation.z =  1.25 + flap;
+      f.armR.rotation.z = -1.25 - flap;
+      f.armL.rotation.x = f.armR.rotation.x = -0.15;
+      f.body.rotation.x = 0.1;
+      f.body.position.y = Math.sin(t * 4.5) * 0.05;
     } else {
       // tuck in mid-air, reach out on the way down
       const fall = THREE.MathUtils.clamp(-this.vel.y / 16, -1, 1);
       f.legL.rotation.x = f.legR.rotation.x = -0.7 + fall * 0.5;
       f.armL.rotation.x = f.armR.rotation.x = -1.5 - fall * 0.6;
+      f.armL.rotation.z = f.armR.rotation.z = 0;
       f.body.rotation.x = -fall * 0.2;
       f.body.position.y = 0;
     }

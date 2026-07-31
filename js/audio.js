@@ -41,8 +41,18 @@ export class Sound {
     osc.stop(t0 + dur + 0.02);
   }
 
-  jump()   { this._blip(430, { type: 'triangle', dur: 0.14, gain: 0.32, slide: 260 }); }
-  double() { this._blip(560, { type: 'triangle', dur: 0.16, gain: 0.30, slide: 330 }); }
+  /** Each jump in a chain sounds a little higher and a little softer. */
+  jump(index = 0) {
+    const n = Math.min(index, 4);
+    this._blip(430 * Math.pow(1.16, n), {
+      type: 'triangle', dur: 0.15 - n * 0.012,
+      gain: 0.32 * Math.pow(0.82, n), slide: 260 - n * 30,
+    });
+  }
+  /** The airy tick of a spent jump easing the fall. */
+  flutter() {
+    this._blip(880, { type: 'sine', dur: 0.13, gain: 0.09, slide: -180 });
+  }
   land()   { this._blip(150, { type: 'sine',     dur: 0.10, gain: 0.22, slide: -60 }); }
   bounce() {
     this._blip(300, { type: 'square', dur: 0.10, gain: 0.16, slide: 480 });
